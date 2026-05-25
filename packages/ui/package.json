@@ -6,9 +6,9 @@
     "./*": "./src/*.tsx"
   },
   "scripts": {
-    "lint": "eslint . --max-warnings 0",
     "generate:component": "turbo gen react-component",
-    "check-types": "tsc --noEmit"
+    "lint": "biome check . && tsc --noEmit",
+    "lint:fix": "biome check --write --unsafe ."
   },
   "devDependencies": {
     "@repo/eslint-config": "workspace:*",
