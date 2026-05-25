@@ -81,6 +81,7 @@ export const isLuhnValid = (numberToCheck: string | number): boolean => {
     cardNum = cardNum / 10;
 
     total += calc2;
+
     i--;
   }
 
