@@ -27,11 +27,14 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      # OIDC trusted publishing needs npm >= 11.5.1; Node 24 bundles 11.3.0.
+      - run: npm install -g npm@latest
+
       # Opens/updates a "Version Packages" PR; publishes to npm when that PR merges.
+      # No NODE_AUTH_TOKEN: publish authenticates via OIDC trusted publishing (id-token).
       - uses: changesets/action@v1
         with:
           version: pnpm run version
           publish: pnpm run release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
