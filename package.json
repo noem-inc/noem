@@ -5,12 +5,16 @@
     "build": "turbo run build",
     "dev": "turbo run dev",
     "lint": "turbo run lint",
-    "lint:fix": "turbo run lint:fix"
+    "lint:fix": "turbo run lint:fix",
+    "changeset": "changeset",
+    "version": "changeset version",
+    "release": "turbo run build --filter=./packages/* && changeset publish"
   },
   "devDependencies": {
     "@biomejs/biome": "2.4.15",
+    "@changesets/cli": "^2.29.7",
     "turbo": "^2.9.14",
-    "typescript": "5.9.2"
+    "typescript": "6.0.3"
   },
   "packageManager": "pnpm@11.3.0",
   "engines": {
