@@ -1,7 +1,35 @@
 {
   "name": "@noem/luhn",
   "version": "0.0.1",
-  "description": "Luhn algorithm validation for card/SIN numbers",
+  "description": "Luhn algorithm (mod 10) validation for credit-card and SIN/SSN numbers",
+  "keywords": [
+    "luhn",
+    "luhn-algorithm",
+    "mod10",
+    "checksum",
+    "credit-card",
+    "card-validation",
+    "sin",
+    "ssn",
+    "validation",
+    "esm",
+    "typescript",
+    "node",
+    "browser"
+  ],
+  "homepage": "https://github.com/noem-inc/noem/tree/main/packages/luhn#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/noem-inc/noem.git",
+    "directory": "packages/luhn"
+  },
+  "bugs": {
+    "url": "https://github.com/noem-inc/noem/issues"
+  },
+  "author": {
+    "name": "Noem Inc.",
+    "url": "https://www.noem.io/"
+  },
   "type": "module",
   "sideEffects": false,
   "files": [
@@ -18,7 +46,8 @@
   "types": "./dist/index.d.ts",
   "module": "./dist/index.js",
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "provenance": true
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
