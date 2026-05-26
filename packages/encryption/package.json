@@ -1,7 +1,38 @@
 {
   "name": "@noem/encryption",
   "version": "0.0.0",
-  "description": "Encryption helper for field-level encrypting data",
+  "description": "Isomorphic field-level encryption helper using WebCrypto AES-256-GCM with authenticated envelopes and key rotation.",
+  "keywords": [
+    "encryption",
+    "field-level-encryption",
+    "envelope-encryption",
+    "aes",
+    "aes-gcm",
+    "aes-256-gcm",
+    "webcrypto",
+    "crypto",
+    "key-rotation",
+    "pii",
+    "isomorphic",
+    "edge",
+    "esm",
+    "typescript",
+    "node",
+    "browser"
+  ],
+  "homepage": "https://github.com/noem-inc/noem/tree/main/packages/encryption#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/noem-inc/noem.git",
+    "directory": "packages/encryption"
+  },
+  "bugs": {
+    "url": "https://github.com/noem-inc/noem/issues"
+  },
+  "author": {
+    "name": "Noem Inc.",
+    "url": "https://www.noem.io/"
+  },
   "type": "module",
   "sideEffects": false,
   "files": [
@@ -18,12 +49,13 @@
   "types": "./dist/index.d.ts",
   "module": "./dist/index.js",
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "provenance": true
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "dev": "tsc -p tsconfig.build.json --watch",
-    "test": "vitest run --coverage",
+    "test": "vitest run",
     "test:watch": "vitest",
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
@@ -35,7 +67,6 @@
   },
   "devDependencies": {
     "@types/node": "^25.9.1",
-    "@vitest/coverage-v8": "^4.1.7",
     "vitest": "^4.1.7"
   },
   "engines": {
