@@ -67,6 +67,9 @@
     "clean": "rm -rf dist .turbo"
   },
   "license": "MIT",
+  "dependencies": {
+    "valibot": "catalog:"
+  },
   "devDependencies": {
     "@biomejs/biome": "catalog:",
     "@vitest/coverage-v8": "catalog:",

@@ -133,6 +133,6 @@ and CI publishes it via OIDC — with provenance, no token.
 
 ## Conventions
 
-- ESM-only packages (`"type": "module"`).
-- Build output goes to `dist/` via `tsc` (`tsconfig.build.json`).
+- ESM/CJS packages.
+- Build output goes to `dist/` via `tsup`.
 - Formatting: 2-space indent, single quotes, trailing commas, semicolons (Biome).

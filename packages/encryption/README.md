@@ -6,7 +6,7 @@
 
 Field-level encryption helper built on WebCrypto AES-256-GCM. Produces a
 self-describing envelope (`kid` + ciphertext + IV) that is safe to store in a
-database column. ESM-only and isomorphic — runs in Node 18+, browsers, and edge
+database column. ESM/CJS and isomorphic — runs in Node 18+, browsers, and edge
 runtimes (no Node `Buffer`).
 
 ## Install

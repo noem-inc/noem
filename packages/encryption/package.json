@@ -71,7 +71,7 @@
   },
   "license": "MIT",
   "dependencies": {
-    "valibot": "^1.4.1"
+    "valibot": "catalog:"
   },
   "devDependencies": {
     "@biomejs/biome": "catalog:",
