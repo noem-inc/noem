@@ -1,5 +1,19 @@
 packages:
   - "apps/*"
   - "packages/*"
+
+catalog:
+  "@biomejs/biome": ^2.4.15
+  "@vitest/coverage-v8": ^4.1.7
+  tsup: ^8.5.0
+  typescript: ^6.0.3
+  vitest: ^4.1.7
+
 allowBuilds:
-  esbuild: false
+  esbuild: true
+
+# Supply-chain hardening: Do not install deps younger then 5 days (7200 minutes).
+minimumReleaseAge: 7200
+
+minimumReleaseAgeExclude:
+  - valibot@1.4.1

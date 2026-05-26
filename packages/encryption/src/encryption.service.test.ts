@@ -82,6 +82,14 @@ describe('EncryptionService', () => {
     const env = await svc.encryptData('secret', AAD);
 
     const bytes = Buffer.from(env.ct, 'base64');
+
+    expect(bytes.length).toBeGreaterThan(0);
+    expect(bytes[0]).not.toBeUndefined();
+
+    if (bytes.length === 0 || !bytes[0]) {
+      return;
+    }
+
     bytes[0] ^= 0xff;
     const tampered: EncryptedDataEnvelope = {
       ...env,
