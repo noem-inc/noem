@@ -1,0 +1,44 @@
+{
+  "name": "@noem/encryption",
+  "version": "0.0.0",
+  "description": "Encryption helper for field-level encrypting data",
+  "type": "module",
+  "sideEffects": false,
+  "files": [
+    "dist",
+    "src",
+    "!src/**/*.test.ts"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "types": "./dist/index.d.ts",
+  "module": "./dist/index.js",
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "dev": "tsc -p tsconfig.build.json --watch",
+    "test": "vitest run --coverage",
+    "test:watch": "vitest",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "clean": "rm -rf dist .turbo"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "valibot": "^1.4.1"
+  },
+  "devDependencies": {
+    "@types/node": "^25.9.1",
+    "@vitest/coverage-v8": "^4.1.7",
+    "vitest": "^4.1.7"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
