@@ -1,159 +1,102 @@
-# Turborepo starter
+# noem
 
-This Turborepo starter is maintained by the Turborepo core team.
+Monorepo of TypeScript packages published to npm under the `@noem` scope.
 
-## Using this example
+Built with [pnpm](https://pnpm.io/) workspaces, [Turborepo](https://turborepo.dev/),
+[Changesets](https://github.com/changesets/changesets) for versioning/publishing, and
+[Biome](https://biomejs.dev/) for linting and formatting.
 
-Run the following command:
+## Packages
 
-```sh
-npx create-turbo@latest
+| Package                       | Description                                       |
+| ----------------------------- | ------------------------------------------------- |
+| [`@noem/luhn`](packages/luhn) | Luhn algorithm validation for card / SIN numbers. |
+
+New packages live under `packages/*`; apps under `apps/*` (see `pnpm-workspace.yaml`).
+
+## Requirements
+
+- Node `24` (see `.nvmrc` — run `nvm use`)
+- pnpm `11.3.0` (declared in `packageManager`)
+
+## Setup
+
+```bash
+pnpm install
 ```
 
-## What's inside?
+## Common tasks
 
-This Turborepo includes the following packages/apps:
+All tasks run through Turborepo from the repo root.
 
-### Apps and Packages
-
-- `docs`: a [Next.js](https://nextjs.org/) app
-- `web`: another [Next.js](https://nextjs.org/) app
-- `@repo/ui`: a stub React component library shared by both `web` and `docs` applications
-- `@repo/eslint-config`: `eslint` configurations (includes `eslint-config-next` and `eslint-config-prettier`)
-- `@repo/typescript-config`: `tsconfig.json`s used throughout the monorepo
-
-Each package/app is 100% [TypeScript](https://www.typescriptlang.org/).
-
-### Utilities
-
-This Turborepo has some additional tools already setup for you:
-
-- [TypeScript](https://www.typescriptlang.org/) for static type checking
-- [ESLint](https://eslint.org/) for code linting
-- [Prettier](https://prettier.io) for code formatting
-
-### Build
-
-To build all apps and packages, run the following command:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
-
-```sh
-cd my-turborepo
-turbo build
+```bash
+pnpm build       # build all packages
+pnpm test        # run all tests (vitest)
+pnpm lint        # check with Biome
+pnpm lint:fix    # apply Biome fixes
+pnpm dev         # watch mode across packages
 ```
 
-Without global `turbo`, use your package manager:
+Target a single package with a filter:
 
-```sh
-cd my-turborepo
-npx turbo build
-pnpm dlx turbo build
-pnpm exec turbo build
+```bash
+pnpm build --filter=@noem/luhn
+pnpm test --filter=@noem/luhn
 ```
 
-You can build a specific package by using a [filter](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters):
+## Releasing a new version
 
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
+Publishing is automated via Changesets + GitHub Actions
+(`.github/workflows/release.yml`). Packages publish to npm using
+[OIDC trusted publishing](https://docs.npmjs.com/trusted-publishers) — no npm token
+is stored in the repo.
 
-```sh
-turbo build --filter=docs
+### 1. Add a changeset
+
+For every change that should ship, add a changeset describing it:
+
+```bash
+pnpm changeset
 ```
 
-Without global `turbo`:
+Pick the affected package(s), choose the bump (`patch` / `minor` / `major`), and write
+a summary. This creates a markdown file under `.changeset/`. Commit it with your change.
 
-```sh
-npx turbo build --filter=docs
-pnpm exec turbo build --filter=docs
-pnpm exec turbo build --filter=docs
+> The CI workflow (`.github/workflows/ci.yml`) gates PRs with
+> `changeset status --since=origin/<base>` and fails when no changeset is present, so a
+> change can't merge unversioned. The gate is skipped for the auto-generated
+> "Version Packages" PR (which has no changesets by design).
+
+### 2. Open a PR to `main`
+
+Push your branch and open a PR. Merge it once approved. The changeset file rides along.
+
+### 3. Merge the "Version Packages" PR
+
+On every push to `main`, the Release workflow runs the Changesets action:
+
+- If unreleased changesets exist, it opens/updates a **"Version Packages"** PR that
+  bumps versions and updates each package's `CHANGELOG.md`.
+- Review and merge that PR.
+
+### 4. Automatic publish
+
+Merging the "Version Packages" PR triggers the workflow again. With no pending
+changesets left, it runs `pnpm run release` (`turbo run build --filter=./packages/* &&
+changeset publish`), building the packages and publishing the bumped versions to npm.
+
+> Publishing requires the package to be configured as a trusted publisher on npm for
+> this repo/workflow. The workflow needs `id-token: write` (already set) and uses
+> `npm@latest` because OIDC trusted publishing needs npm >= 11.5.1.
+
+### Summary
+
+```
+add changeset → merge PR to main → merge "Version Packages" PR → npm publish (auto)
 ```
 
-### Develop
+## Conventions
 
-To develop all apps and packages, run the following command:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
-
-```sh
-cd my-turborepo
-turbo dev
-```
-
-Without global `turbo`, use your package manager:
-
-```sh
-cd my-turborepo
-npx turbo dev
-pnpm exec turbo dev
-pnpm exec turbo dev
-```
-
-You can develop a specific package by using a [filter](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters):
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
-
-```sh
-turbo dev --filter=web
-```
-
-Without global `turbo`:
-
-```sh
-npx turbo dev --filter=web
-pnpm exec turbo dev --filter=web
-pnpm exec turbo dev --filter=web
-```
-
-### Remote Caching
-
-> [!TIP]
-> Vercel Remote Cache is free for all plans. Get started today at [vercel.com](https://vercel.com/signup?utm_source=remote-cache-sdk&utm_campaign=free_remote_cache).
-
-Turborepo can use a technique known as [Remote Caching](https://turborepo.dev/docs/core-concepts/remote-caching) to share cache artifacts across machines, enabling you to share build caches with your team and CI/CD pipelines.
-
-By default, Turborepo will cache locally. To enable Remote Caching you will need an account with Vercel. If you don't have an account you can [create one](https://vercel.com/signup?utm_source=turborepo-examples), then enter the following commands:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
-
-```sh
-cd my-turborepo
-turbo login
-```
-
-Without global `turbo`, use your package manager:
-
-```sh
-cd my-turborepo
-npx turbo login
-pnpm exec turbo login
-pnpm exec turbo login
-```
-
-This will authenticate the Turborepo CLI with your [Vercel account](https://vercel.com/docs/concepts/personal-accounts/overview).
-
-Next, you can link your Turborepo to your Remote Cache by running the following command from the root of your Turborepo:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
-
-```sh
-turbo link
-```
-
-Without global `turbo`:
-
-```sh
-npx turbo link
-pnpm exec turbo link
-pnpm exec turbo link
-```
-
-## Useful Links
-
-Learn more about the power of Turborepo:
-
-- [Tasks](https://turborepo.dev/docs/crafting-your-repository/running-tasks)
-- [Caching](https://turborepo.dev/docs/crafting-your-repository/caching)
-- [Remote Caching](https://turborepo.dev/docs/core-concepts/remote-caching)
-- [Filtering](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters)
-- [Configuration Options](https://turborepo.dev/docs/reference/configuration)
-- [CLI Usage](https://turborepo.dev/docs/reference/command-line-reference)
+- ESM-only packages (`"type": "module"`).
+- Build output goes to `dist/` via `tsc` (`tsconfig.build.json`).
+- Formatting: 2-space indent, single quotes, trailing commas, semicolons (Biome).
