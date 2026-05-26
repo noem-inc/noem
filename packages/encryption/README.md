@@ -1,5 +1,9 @@
 # @noem/encryption
 
+[![Release](https://github.com/noem-inc/noem/actions/workflows/release.yml/badge.svg?branch=main)](https://github.com/noem-inc/noem/actions/workflows/release.yml)
+[![npm version](https://img.shields.io/npm/v/@noem/encryption.svg)](https://www.npmjs.com/package/@noem/encryption)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+
 Field-level encryption helper built on WebCrypto AES-256-GCM. Produces a
 self-describing envelope (`kid` + ciphertext + IV) that is safe to store in a
 database column. ESM-only and isomorphic — runs in Node 18+, browsers, and edge
