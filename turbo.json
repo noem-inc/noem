@@ -12,7 +12,7 @@
     },
     "test": {
       "dependsOn": [],
-      "outputs": []
+      "outputs": ["coverage/**"]
     },
     "lint:fix": {
       "cache": false
