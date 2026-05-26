@@ -1,5 +1,12 @@
 # @noem/luhn
 
+## 0.0.3
+
+### Patch Changes
+
+- e3cf338: Add CJS support
+- 291775b: Put valibot in catalog
+
 ## 0.0.2
 
 ### Patch Changes
