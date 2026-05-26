@@ -10,7 +10,7 @@ export default defineConfig({
       provider: 'v8',
 
       // Specify types of reports to generate
-      reporter: ['text', 'json', 'html'],
+      reporter: ['text', 'html'],
 
       // Target specific source directories to include
       include: ['src/**/*.{ts,tsx,mts,mtsx}'],

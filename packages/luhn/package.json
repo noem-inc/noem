@@ -68,8 +68,11 @@
   },
   "license": "MIT",
   "devDependencies": {
-    "tsup": "^8.5.0",
-    "vitest": "^4.1.7"
+    "@biomejs/biome": "catalog:",
+    "@vitest/coverage-v8": "catalog:",
+    "tsup": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   },
   "engines": {
     "node": ">=18"
