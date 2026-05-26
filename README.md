@@ -95,6 +95,42 @@ changeset publish`), building the packages and publishing the bumped versions to
 add changeset → merge PR to main → merge "Version Packages" PR → npm publish (auto)
 ```
 
+## Bootstrapping a new package (one-time)
+
+OIDC trusted publishing can't create a package that doesn't exist yet — npm only lets
+you configure a trusted publisher on a package that's already on the registry. So the
+**first** publish of a new `@noem/*` package is a one-time manual step; every release
+after that is automated (see above).
+
+From the new package's directory (`packages/<name>`), signed in to an npm account in
+the `@noem` org with 2FA enabled:
+
+```bash
+# 1. trusted-publisher config + --allow-publish need npm >= 11.15
+npm install -g npm@latest
+
+# 2. build so dist/ exists (the published tarball ships dist + src per "files")
+pnpm build --filter=@noem/<name>
+
+# 3. publish the initial 0.0.0 to create the package on the registry.
+#    leave the version at 0.0.0 — your changeset bumps it to 0.0.1 in CI.
+npm publish
+
+# 4. register this repo's release workflow as a trusted publisher
+npm trust github @noem/<name> --file release.yml --repo noem-inc/noem --allow-publish
+
+# 5. confirm it stuck (prompts for an OTP)
+npm trust list @noem/<name>
+```
+
+After this, the normal flow takes over: the pending changeset bumps `0.0.0 → 0.0.1`
+and CI publishes it via OIDC — with provenance, no token.
+
+> Gotchas: **don't** pass `--dry-run` on step 4 (it validates but persists nothing),
+> and **don't** pass `--env` — `release.yml` declares no GitHub Actions environment, so
+> pinning an environment claim the workflow never sends will make CI publishes fail.
+> The manual `0.0.0` is the only version without a provenance attestation.
+
 ## Conventions
 
 - ESM-only packages (`"type": "module"`).
