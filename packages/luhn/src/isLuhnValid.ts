@@ -1,90 +1,46 @@
-// regex
+// Only accept a contiguous run of ASCII digits. Applied to the trimmed input,
+// this is what pins validation to real digit strings — no parseInt truncation.
 const DIGIT_ONLY_REGEX = /^[0-9]+$/;
 
-function isANumber(num: number | string) {
-  if (typeof num === 'string') {
-    return DIGIT_ONLY_REGEX.test(num);
-  }
-
-  if (Number.isNaN(num)) {
-    return false;
-  }
-
-  return true;
-}
-
 /**
- * Validates the input card/sin number is a valid Luhn Number
+ * Validates the input card/sin number is a valid Luhn Number.
+ *
+ * The mod-10 sum runs over the input's digit *characters* (no parseInt / float
+ * division), so it stays exact for PANs longer than `Number.MAX_SAFE_INTEGER`
+ * (17–19 digit cards) and never silently truncates trailing non-digits.
  *
  * @see https://github.com/chrisbuttery/luhn/blob/master/index.js
  */
-export const isLuhnValid = (numberToCheck: string | number): boolean => {
+export const isLuhnValid = (numberToCheck: string): boolean => {
   if (!numberToCheck) {
     return false;
   }
 
-  if (typeof numberToCheck !== 'string') {
-    numberToCheck = String(numberToCheck);
-  }
-
-  // trim the string and validate it has length
   const trimmed = numberToCheck.trim();
-  const trimmedLength = trimmed.length;
 
-  if (trimmedLength === 0) {
+  // Rejects empty, blank, and any non-digit input (incl. internal whitespace).
+  if (!DIGIT_ONLY_REGEX.test(trimmed)) {
     return false;
   }
 
-  // parse the string to an int and validate it's a number
-  let cardNum = parseInt(trimmed, 10);
-  if (!isANumber(cardNum)) {
-    return false;
-  }
+  let sum = 0;
+  let double = false;
 
-  let total = 0;
-  let calc1: number;
-  let calc2: number;
+  // Traverse digits right-to-left: the rightmost digit is never doubled, every
+  // second digit from the right is doubled (subtract 9 when the result > 9).
+  for (let i = trimmed.length - 1; i >= 0; i--) {
+    let digit = trimmed.charCodeAt(i) - 48; // '0' === 48
 
-  // traverse through card digits
-  // starting from  the most right
-  for (let i = trimmedLength; i > 0; i--) {
-    // right most digit
-    calc1 = Math.floor(cardNum) % 10;
-    total += calc1;
-
-    // move the decimal
-    cardNum = cardNum / 10;
-
-    // the next right most digit
-    calc1 = Math.floor(cardNum) % 10;
-    calc2 = calc1 * 2;
-
-    switch (calc2) {
-      case 10:
-        calc2 = 1;
-        break;
-      case 12:
-        calc2 = 3;
-        break;
-      case 14:
-        calc2 = 5;
-        break;
-      case 16:
-        calc2 = 7;
-        break;
-      case 18:
-        calc2 = 9;
-        break;
+    if (double) {
+      digit *= 2;
+      if (digit > 9) {
+        digit -= 9;
+      }
     }
 
-    // move decimal
-    cardNum = cardNum / 10;
-
-    total += calc2;
-
-    i--;
+    sum += digit;
+    double = !double;
   }
 
-  // return a boolean
-  return total % 10 === 0;
+  return sum % 10 === 0;
 };
