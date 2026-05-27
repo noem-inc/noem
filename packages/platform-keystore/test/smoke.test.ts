@@ -1,7 +1,9 @@
 import { expect, test } from 'vitest';
 
-import { helloWorld } from '../dist/index.js';
+import { getProviderStatus } from '../dist/index.js';
 
-test('helloWorld returns greeting from native addon', () => {
-  expect(helloWorld()).toBe('hello world');
+test('getProviderStatus reports an available backend', () => {
+  const status = getProviderStatus();
+  expect(status.available).toBe(true);
+  expect(status.backend).not.toBe('none');
 });
