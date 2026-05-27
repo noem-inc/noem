@@ -7,10 +7,17 @@ use core::ffi::c_void;
 
 use base64::{Engine as _, engine::general_purpose::STANDARD};
 use windows::Win32::Security::Cryptography::{
-    BCRYPT_OAEP_PADDING_INFO, BCRYPT_SHA256_ALGORITHM, CERT_KEY_SPEC, NCRYPT_FLAGS, NCRYPT_HANDLE,
-    NCRYPT_KEY_HANDLE, NCRYPT_PAD_OAEP_FLAG, NCRYPT_PROV_HANDLE, NCryptCreatePersistedKey,
-    NCryptDecrypt, NCryptDeleteKey, NCryptEncrypt, NCryptFinalizeKey, NCryptFreeObject,
-    NCryptOpenKey, NCryptOpenStorageProvider,
+    BCRYPT_OAEP_PADDING_INFO, BCRYPT_SHA256_ALGORITHM, CERT_KEY_SPEC,
+    NCRYPT_ALGORITHM_GROUP_PROPERTY, NCRYPT_ALLOW_EXPORT_FLAG, NCRYPT_ALLOW_PLAINTEXT_EXPORT_FLAG,
+    NCRYPT_EXPORT_POLICY_PROPERTY, NCRYPT_FLAGS, NCRYPT_HANDLE, NCRYPT_KEY_HANDLE,
+    NCRYPT_LENGTH_PROPERTY, NCRYPT_PAD_OAEP_FLAG, NCRYPT_PCP_TPM_MANUFACTURER_ID_PROPERTY,
+    NCRYPT_PERSIST_FLAG, NCRYPT_PROV_HANDLE, NCryptCreatePersistedKey, NCryptDecrypt,
+    NCryptDeleteKey, NCryptEncrypt, NCryptFinalizeKey, NCryptFreeObject, NCryptGetProperty,
+    NCryptOpenKey, NCryptOpenStorageProvider, NCryptSetProperty,
+};
+use windows::Win32::Security::OBJECT_SECURITY_INFORMATION;
+use windows::Win32::System::TpmBaseServices::{
+    TPM_DEVICE_INFO, TPM_VERSION_12, TPM_VERSION_20, Tbsi_GetDeviceInfo,
 };
 use windows::core::PCWSTR;
 
@@ -114,16 +121,30 @@ impl TpmKeyStorage {
 impl KeyStorageProvider for TpmKeyStorage {
     fn status(&self) -> Result<ProviderStatus, KeyStoreError> {
         // Attempt to open the provider — if this succeeds, TPM KSP is functional
-        let _provider = Self::open_provider()?;
+        let provider = Self::open_provider()?;
 
-        // TODO: Query TPM version and manufacturer via NCryptGetProperty
-        // on the provider handle (NCRYPT_PCP_PLATFORM_TYPE_PROPERTY, etc.)
+        // Both lookups are best-effort: a failure leaves the field None but the
+        // provider is still reported as available.
+        let tpm_version = query_tpm_version();
+
+        let tpm_manufacturer = get_u32_property(
+            NCRYPT_HANDLE(provider.0.0),
+            NCRYPT_PCP_TPM_MANUFACTURER_ID_PROPERTY,
+        )
+        .ok()
+        .map(|id| {
+            // TPM_PT_MANUFACTURER packs 4 ASCII chars into a u32, MSB first.
+            // Byte order assumed big-endian here — verify against hardware.
+            let s = String::from_utf8_lossy(&id.to_be_bytes()).into_owned();
+            s.trim_matches(|c: char| c == '\0' || c == ' ').to_string()
+        })
+        .filter(|s| !s.is_empty());
 
         Ok(ProviderStatus {
             available: true,
             backend: Backend::NcryptTpm,
-            tpm_version: None,      // TODO: populate from TPM properties
-            tpm_manufacturer: None, // TODO: populate from TPM properties
+            tpm_version,
+            tpm_manufacturer,
             message: "Microsoft Platform Crypto Provider loaded successfully".to_string(),
         })
     }
@@ -171,8 +192,43 @@ impl KeyStorageProvider for TpmKeyStorage {
             )));
         }
 
-        // TODO: Set key length property to 2048 via NCryptSetProperty
-        // TODO: Set NCRYPT_EXPORT_POLICY_PROPERTY to 0 (non-exportable)
+        // Properties must be set on the unfinalized key. On failure, clean up the
+        // partial key (mirrors the finalize-error path below).
+        let h = NCRYPT_HANDLE(key_handle.0);
+
+        // RSA-2048 key wrapping.
+        if let Err(e) = unsafe {
+            NCryptSetProperty(
+                h,
+                NCRYPT_LENGTH_PROPERTY,
+                &2048u32.to_ne_bytes(),
+                NCRYPT_FLAGS(0),
+            )
+        } {
+            unsafe {
+                let _ = NCryptDeleteKey(key_handle, 0);
+            }
+            return Err(KeyStoreError::ProvisioningFailed(format!(
+                "set key length failed: {e:?}"
+            )));
+        }
+
+        // Non-exportable: export policy = 0 (no NCRYPT_ALLOW_*_FLAG bits), persisted.
+        if let Err(e) = unsafe {
+            NCryptSetProperty(
+                h,
+                NCRYPT_EXPORT_POLICY_PROPERTY,
+                &0u32.to_ne_bytes(),
+                NCRYPT_PERSIST_FLAG,
+            )
+        } {
+            unsafe {
+                let _ = NCryptDeleteKey(key_handle, 0);
+            }
+            return Err(KeyStoreError::ProvisioningFailed(format!(
+                "set export policy failed: {e:?}"
+            )));
+        }
 
         let finalize_status = unsafe { NCryptFinalizeKey(key_handle, NCRYPT_FLAGS(0)) };
 
@@ -202,16 +258,27 @@ impl KeyStorageProvider for TpmKeyStorage {
 
     fn open_key(&self, key_name: &str) -> Result<KeyInfo, KeyStoreError> {
         let provider = Self::open_provider()?;
-        let _key = Self::open_key_handle(&provider, key_name)?;
+        let key = Self::open_key_handle(&provider, key_name)?;
+        let h = NCRYPT_HANDLE(key.0.0);
 
-        // TODO: Read actual properties (algorithm, length, export policy)
-        // via NCryptGetProperty
+        let group = get_string_property(h, NCRYPT_ALGORITHM_GROUP_PROPERTY)
+            .unwrap_or_else(|_| "RSA".to_string());
+        let length = get_u32_property(h, NCRYPT_LENGTH_PROPERTY).unwrap_or(0);
+        let policy = get_u32_property(h, NCRYPT_EXPORT_POLICY_PROPERTY).unwrap_or(0);
+
+        let exportable =
+            policy & (NCRYPT_ALLOW_EXPORT_FLAG | NCRYPT_ALLOW_PLAINTEXT_EXPORT_FLAG) != 0;
+        let algorithm = if length > 0 {
+            format!("{group}-{length}")
+        } else {
+            group
+        };
 
         Ok(KeyInfo {
             name: key_name.to_string(),
             backend: "ncrypt_tpm".to_string(),
-            exportable: false,
-            algorithm: "RSA-2048".to_string(),
+            exportable,
+            algorithm,
         })
     }
 
@@ -377,5 +444,81 @@ fn oaep_padding_info() -> BCRYPT_OAEP_PADDING_INFO {
         pszAlgId: BCRYPT_SHA256_ALGORITHM,
         pbLabel: std::ptr::null_mut(),
         cbLabel: 0,
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Property helpers
+// ---------------------------------------------------------------------------
+
+/// Read a DWORD-valued NCrypt property from a key or provider handle.
+fn get_u32_property(handle: NCRYPT_HANDLE, prop: PCWSTR) -> Result<u32, KeyStoreError> {
+    let mut buf = [0u8; 4];
+    let mut cb: u32 = 0;
+    unsafe {
+        NCryptGetProperty(
+            handle,
+            prop,
+            Some(&mut buf),
+            &mut cb,
+            OBJECT_SECURITY_INFORMATION(0),
+        )
+    }
+    .map_err(|e| {
+        KeyStoreError::PlatformError("NCryptGetProperty failed".to_string(), e.code().0 as u32)
+    })?;
+    Ok(u32::from_ne_bytes(buf))
+}
+
+/// Read a NUL-terminated wide-string NCrypt property.
+fn get_string_property(handle: NCRYPT_HANDLE, prop: PCWSTR) -> Result<String, KeyStoreError> {
+    let mut cb: u32 = 0;
+    unsafe { NCryptGetProperty(handle, prop, None, &mut cb, OBJECT_SECURITY_INFORMATION(0)) }
+        .map_err(|e| {
+            KeyStoreError::PlatformError(
+                "NCryptGetProperty size query failed".to_string(),
+                e.code().0 as u32,
+            )
+        })?;
+
+    let mut buf = vec![0u8; cb as usize];
+    unsafe {
+        NCryptGetProperty(
+            handle,
+            prop,
+            Some(&mut buf),
+            &mut cb,
+            OBJECT_SECURITY_INFORMATION(0),
+        )
+    }
+    .map_err(|e| {
+        KeyStoreError::PlatformError("NCryptGetProperty failed".to_string(), e.code().0 as u32)
+    })?;
+
+    let wide: Vec<u16> = buf[..cb as usize]
+        .chunks_exact(2)
+        .map(|c| u16::from_ne_bytes([c[0], c[1]]))
+        .collect();
+    let end = wide.iter().position(|&c| c == 0).unwrap_or(wide.len());
+    Ok(String::from_utf16_lossy(&wide[..end]))
+}
+
+/// Best-effort TPM version via TBS. Returns None if TBS is unavailable.
+fn query_tpm_version() -> Option<String> {
+    let mut info = TPM_DEVICE_INFO::default();
+    let rc = unsafe {
+        Tbsi_GetDeviceInfo(
+            core::mem::size_of::<TPM_DEVICE_INFO>() as u32,
+            (&mut info as *mut TPM_DEVICE_INFO).cast(),
+        )
+    };
+    if rc != 0 {
+        // non-zero == TBS error (TBS_SUCCESS is 0)
+        return None;
+    }
+    match info.tpmVersion {
+        TPM_VERSION_20 => Some("2.0".to_string()),
+        TPM_VERSION_12 => Some("1.2".to_string()),
+        _ => None,
     }
 }
