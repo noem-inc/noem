@@ -2,8 +2,10 @@
 name = "noem-platform-keystore"
 version = "0.0.0"
 edition = "2024"
-description = "TPM-backed key storage via NCrypt Platform KSP"
+description = "TPM-backed hardware key storage — provision non-exportable keys and seal/unseal secrets via the Windows NCrypt Platform KSP"
 license = "MIT"
+keywords = ["tpm", "keystore", "ncrypt", "encryption", "napi"]
+categories = ["cryptography", "os::windows-apis", "api-bindings"]
 
 [lib]
 crate-type = ["cdylib"]

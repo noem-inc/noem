@@ -1,8 +1,19 @@
 {
   "name": "@noem/platform-keystore",
   "version": "0.0.0",
-  "description": "Initial Commit Platform Keystore",
-  "keywords": [],
+  "description": "TPM-backed hardware key storage for Node — provision non-exportable keys and seal/unseal secrets via the Windows NCrypt Platform KSP",
+  "keywords": [
+    "tpm",
+    "keystore",
+    "ncrypt",
+    "keychain",
+    "secure-enclave",
+    "encryption",
+    "seal",
+    "napi",
+    "native",
+    "hardware-security"
+  ],
   "homepage": "https://github.com/noem-inc/noem/tree/main/packages/platform-keystore#readme",
   "repository": {
     "type": "git",
