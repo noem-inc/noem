@@ -14,7 +14,7 @@ pub trait KeyStorageProvider: Send + Sync {
     ///
     /// - `key_name`:   Unique identifier for the key within the provider.
     /// - `exportable`: Must be `false` for production (TPM non-exportable).
-    ///                 Dev backend may allow `true` for testing.
+    ///   Dev backend may allow `true` for testing.
     ///
     /// Returns metadata about the created key.
     /// Fails with `KeyAlreadyExists` if a key with this name is already provisioned.

@@ -31,7 +31,7 @@ fn create_provider() -> std::result::Result<Box<dyn KeyStorageProvider>, KeyStor
     #[cfg(target_os = "macos")]
     {
         let provider = macos::DevKeyStorage::new()?;
-        return Ok(Box::new(provider));
+        Ok(Box::new(provider))
     }
 
     #[cfg(not(any(target_os = "windows", target_os = "macos")))]
