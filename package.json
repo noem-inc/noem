@@ -8,7 +8,7 @@
     "lint:fix": "turbo run lint:fix",
     "test": "turbo run test",
     "changeset": "changeset",
-    "version": "changeset version",
+    "version": "changeset version && node scripts/sync-cargo-version.mjs",
     "release": "turbo run build --filter=./packages/* && changeset publish",
     "clean": "find . -type d \\( -name node_modules -o -name .turbo -o -name coverage \\) -prune -exec rm -rf {} +"
   },
