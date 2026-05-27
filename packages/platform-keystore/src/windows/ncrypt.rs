@@ -142,7 +142,7 @@ impl KeyStorageProvider for TpmKeyStorage {
 
         Ok(ProviderStatus {
             available: true,
-            backend: Backend::NcryptTpm,
+            backend: Some(Backend::NcryptTpm),
             tpm_version,
             tpm_manufacturer,
             message: "Microsoft Platform Crypto Provider loaded successfully".to_string(),
@@ -250,7 +250,7 @@ impl KeyStorageProvider for TpmKeyStorage {
 
         Ok(KeyInfo {
             name: key_name.to_string(),
-            backend: "ncrypt_tpm".to_string(),
+            backend: Backend::NcryptTpm,
             exportable: false,
             algorithm: "RSA-2048".to_string(),
         })
@@ -276,7 +276,7 @@ impl KeyStorageProvider for TpmKeyStorage {
 
         Ok(KeyInfo {
             name: key_name.to_string(),
-            backend: "ncrypt_tpm".to_string(),
+            backend: Backend::NcryptTpm,
             exportable,
             algorithm,
         })
@@ -349,7 +349,7 @@ impl KeyStorageProvider for TpmKeyStorage {
         Ok(SealedBlob {
             ciphertext: encoded,
             key_name: key_name.to_string(),
-            backend: "ncrypt_tpm".to_string(),
+            backend: Backend::NcryptTpm,
         })
     }
 

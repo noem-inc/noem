@@ -47,8 +47,8 @@ pub struct KeyInfo {
     /// Unique key name within the provider
     pub name: String,
 
-    /// "tpm" | "secure_enclave" | "software"
-    pub backend: String,
+    /// Backend that holds this key (see `Backend`).
+    pub backend: Backend,
 
     /// Whether the key can be exported (should always be false in production)
     pub exportable: bool,
@@ -62,14 +62,14 @@ pub struct KeyInfo {
 // ---------------------------------------------------------------------------
 
 /// Key storage backend identifier. Serializes to the snake_case string on the
-/// JS side: "ncrypt_tpm" | "macos_keychain" | "none".
+/// JS side: "ncrypt_tpm" | "macos_keychain". Absence of a backend (e.g. an
+/// unavailable provider) is modeled with `Option<Backend>`, not a variant.
 #[napi(string_enum = "snake_case")]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Backend {
     NcryptTpm,
     MacosKeychain,
-    None,
 }
 
 #[napi(object)]
@@ -78,8 +78,8 @@ pub struct ProviderStatus {
     /// Whether the provider is available and functional
     pub available: bool,
 
-    /// Which backend is active (see `Backend`).
-    pub backend: Backend,
+    /// Which backend is active, or `None` when no provider is available.
+    pub backend: Option<Backend>,
 
     /// TPM spec version if applicable, e.g. "2.0"
     pub tpm_version: Option<String>,
@@ -104,8 +104,8 @@ pub struct SealedBlob {
     /// Name of the key used to seal
     pub key_name: String,
 
-    /// Backend that produced this blob
-    pub backend: String,
+    /// Backend that produced this blob (see `Backend`).
+    pub backend: Backend,
 }
 
 // ---------------------------------------------------------------------------

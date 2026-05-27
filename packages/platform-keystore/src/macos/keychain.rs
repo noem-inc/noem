@@ -27,7 +27,7 @@ impl KeyStorageProvider for DevKeyStorage {
         // TODO: Check Secure Enclave availability via SecAccessControlCreateFlags
         Ok(ProviderStatus {
             available: true,
-            backend: Backend::MacosKeychain,
+            backend: Some(Backend::MacosKeychain),
             tpm_version: None,
             tpm_manufacturer: None,
             message: "macOS Keychain (dev backend) — NOT FOR PRODUCTION".to_string(),
@@ -55,7 +55,7 @@ impl KeyStorageProvider for DevKeyStorage {
 
         Ok(KeyInfo {
             name: key_name.to_string(),
-            backend: "macos_keychain".to_string(),
+            backend: Backend::MacosKeychain,
             exportable: false,
             algorithm: "EC-P256-SE".to_string(),
         })
@@ -67,7 +67,7 @@ impl KeyStorageProvider for DevKeyStorage {
 
         Ok(KeyInfo {
             name: key_name.to_string(),
-            backend: "macos_keychain".to_string(),
+            backend: Backend::MacosKeychain,
             exportable: false,
             algorithm: "EC-P256-SE".to_string(),
         })
