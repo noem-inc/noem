@@ -6,6 +6,8 @@ const platform = process.platform;
 const isMac = platform === 'darwin';
 const isWindows = platform === 'win32';
 
+console.info(`Running tests for platform: ${platform}`);
+
 test('getProviderStatus reports a backend on supported platforms', () => {
   if (isMac) {
     const status = getProviderStatus();
@@ -23,11 +25,15 @@ test('getProviderStatus reports a backend on supported platforms', () => {
       const status = getProviderStatus();
       expect(status.available).toBe(true);
       expect(status.backend).toBe('ncrypt_tpm');
+
+      console.info('TPM Available tests');
     } catch (err) {
       expect((err as Error).message).toMatch(/provider not available/i);
+      console.info('TPM Not Available tests');
     }
     return;
   }
 
+  console.info('TPM Error tests');
   expect(() => getProviderStatus()).toThrow();
 });
