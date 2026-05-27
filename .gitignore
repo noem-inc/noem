@@ -36,3 +36,9 @@ yarn-error.log*
 # Misc
 .DS_Store
 *.pem
+
+# Rust specific ignores
+target
+*.rs.bk
+Cargo.lock.ms
+*.node

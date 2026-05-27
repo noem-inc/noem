@@ -5,6 +5,7 @@ packages:
 catalog:
   "@biomejs/biome": ^2.4.15
   "@vitest/coverage-v8": ^4.1.7
+  "@napi-rs/cli": "^3.6.2"
   tsup: ^8.5.0
   typescript: ^6.0.3
   valibot: ^1.4.1
