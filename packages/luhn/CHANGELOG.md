@@ -1,5 +1,11 @@
 # @noem/luhn
 
+## 0.0.6
+
+### Patch Changes
+
+- eb38288: Full e2e release test
+
 ## 0.0.5
 
 ### Patch Changes
