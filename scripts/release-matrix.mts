@@ -3,10 +3,16 @@
 /**
  * Emit the per-target build matrix for the Release workflow.
  *
- * Scans `packages-rust/*`. For each package whose `package.json` `version`
- * field was bumped in the merge commit at HEAD, expands its `napi.targets`
- * into one matrix entry per target. Maps each target triple to the GitHub
- * runner that can compile it natively.
+ * Scans `packages-rust/*`. A package enters the matrix when either:
+ *   1. Its `package.json` `version` was bumped in the HEAD commit (the
+ *      usual Version-Packages-merge flow), OR
+ *   2. One of its per-platform sub-packages on npm trails the parent
+ *      version — i.e. a prior release run failed mid-flight and never
+ *      called `napi pre-publish`. Recovering this state without (2)
+ *      would require a fresh version bump every time.
+ * Then expands its `napi.targets` into one matrix entry per target and
+ * maps each target triple to the GitHub runner that can compile it
+ * natively.
  *
  * Outputs (in $GITHUB_OUTPUT format):
  *
@@ -29,6 +35,7 @@ type NapiConfig = {
 
 type PackageJson = {
   name: string;
+  version: string;
   napi?: NapiConfig;
 };
 
@@ -65,6 +72,77 @@ function targetToRunner(target: string): string {
   throw new Error(
     `No runner mapping for target "${target}". Add it to TARGET_TO_RUNNER in scripts/release-matrix.mts.`,
   );
+}
+
+/**
+ * Latest version of `pkgName` published to npm, or `null` if the package
+ * has never been published. `npm view` exits non-zero on E404; we treat
+ * that as "needs publishing".
+ */
+function npmPublishedVersion(pkgName: string): string | null {
+  try {
+    return execFileSync('npm', ['view', pkgName, 'version'], {
+      encoding: 'utf-8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+    }).trim();
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Strict greater-than for `X.Y.Z` versions (no prerelease/build metadata
+ * — our internal crates don't use them). Returns false if either side
+ * fails to parse, so we never falsely flag a package as ahead.
+ */
+function semverGt(a: string, b: string): boolean {
+  const pa = a.split('.').map(Number);
+  const pb = b.split('.').map(Number);
+  if (
+    pa.length !== 3 ||
+    pb.length !== 3 ||
+    pa.some(Number.isNaN) ||
+    pb.some(Number.isNaN)
+  ) {
+    return false;
+  }
+  for (let i = 0; i < 3; i++) {
+    if ((pa[i] ?? 0) > (pb[i] ?? 0)) return true;
+    if ((pa[i] ?? 0) < (pb[i] ?? 0)) return false;
+  }
+  return false;
+}
+
+/**
+ * Returns true if any of the `packages-rust/<pkg>/npm/<triple>/package.json`
+ * sub-packages is on npm at a version older than the parent crate (or has
+ * never been published). Used to detect a stranded release: parent main
+ * pkg published, sub-pkgs never made it because the build matrix failed.
+ *
+ * Logs a warning for each stranded sub-pkg so the workflow log explains
+ * why the matrix is non-empty without an in-commit version bump.
+ */
+function hasStrandedSubpackage(pkgDir: string, parent: PackageJson): boolean {
+  const npmDir = resolve(rustRoot, pkgDir, 'npm');
+  if (!existsSync(npmDir)) return false;
+
+  let stranded = false;
+  for (const sub of readdirSync(npmDir, { withFileTypes: true })) {
+    if (!sub.isDirectory()) continue;
+    const subPkgJsonPath = resolve(npmDir, sub.name, 'package.json');
+    if (!existsSync(subPkgJsonPath)) continue;
+    const subPkg = JSON.parse(readFileSync(subPkgJsonPath, 'utf-8')) as {
+      name: string;
+    };
+    const subNpmVersion = npmPublishedVersion(subPkg.name);
+    if (subNpmVersion === null || semverGt(parent.version, subNpmVersion)) {
+      console.warn(
+        `[release-matrix] ${subPkg.name}@${subNpmVersion ?? 'unpublished'} is behind ${parent.name}@${parent.version} — recovering stranded release.`,
+      );
+      stranded = true;
+    }
+  }
+  return stranded;
 }
 
 function versionBumpedInHead(relPath: string): boolean {
@@ -109,7 +187,19 @@ if (existsSync(rustRoot)) {
       continue;
     }
 
-    if (!versionBumpedInHead(`packages-rust/${entry.name}`)) {
+    // Two reasons to include a package in the build matrix:
+    //   1. Its `package.json` version was bumped in HEAD (normal
+    //      Version-Packages-merge flow).
+    //   2. One of its per-platform sub-packages on npm lags the main
+    //      package version — a prior release run failed mid-flight (e.g.
+    //      Windows build crashed) and `napi pre-publish` never ran, so
+    //      `@noem/<pkg>-<triple>` is stuck behind `@noem/<pkg>`. Without
+    //      this branch, a subsequent push that doesn't bump the version
+    //      would skip the build matrix and ship a headless main again.
+    const bumpedInHead = versionBumpedInHead(`packages-rust/${entry.name}`);
+    const stranded = !bumpedInHead && hasStrandedSubpackage(entry.name, pkg);
+
+    if (!bumpedInHead && !stranded) {
       continue;
     }
 
