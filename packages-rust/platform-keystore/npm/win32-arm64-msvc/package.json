@@ -26,7 +26,7 @@
     "name": "Noem Inc.",
     "url": "https://www.noem.io/"
   },
-  "homepage": "https://github.com/noem-inc/noem/tree/main/packages/platform-keystore#readme",
+  "homepage": "https://github.com/noem-inc/noem/tree/main/packages-rust/platform-keystore#readme",
   "license": "MIT",
   "engines": {
     "node": ">=18"
@@ -34,7 +34,7 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/noem-inc/noem.git",
-    "directory": "packages/platform-keystore"
+    "directory": "packages-rust/platform-keystore"
   },
   "bugs": {
     "url": "https://github.com/noem-inc/noem/issues"

@@ -12,7 +12,7 @@ Built with [pnpm](https://pnpm.io/) workspaces, [Turborepo](https://turborepo.de
 | ------------------------------------------------------- | ---------------------------------------------------------------------------- |
 | [`@noem/encryption`](packages/encryption)               | Isomorphic field-level encryption (WebCrypto AES-256-GCM) with key rotation. |
 | [`@noem/luhn`](packages/luhn)                           | Luhn algorithm validation for card / SIN numbers.                            |
-| [`@noem/platform-keystore`](packages/platform-keystore) | TPM-backed hardware key storage — seal/unseal via the Windows NCrypt KSP.    |
+| [`@noem/platform-keystore`](packages-rust/platform-keystore) | TPM-backed hardware key storage — seal/unseal via the Windows NCrypt KSP.    |
 
 New packages live under `packages/*`; (see `pnpm-workspace.yaml`).
 

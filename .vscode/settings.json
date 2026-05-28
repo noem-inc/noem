@@ -16,6 +16,5 @@
   },
   "[rust]": {
     "editor.defaultFormatter": "rust-lang.rust-analyzer"
-  },
-  "rust-analyzer.linkedProjects": ["./packages/platform-keystore/Cargo.toml"]
+  }
 }

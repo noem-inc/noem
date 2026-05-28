@@ -37,6 +37,23 @@ pnpm add @noem/platform-keystore
 
 Requires Node >= 18.
 
+The native binary ships in a per-platform subpackage
+(`@noem/platform-keystore-win32-x64-msvc`, `…-win32-arm64-msvc`,
+`…-darwin-arm64`) declared via `optionalDependencies`. Your package manager
+fetches the one matching your host automatically — no flags needed.
+
+Installing on an unsupported platform succeeds with no binary;
+`require('@noem/platform-keystore')` then throws at load.
+
+> [!NOTE]
+> **Cross-platform bundling** (e.g. building a Windows artifact from a macOS
+> host) needs npm's `--cpu` / `--os` overrides so npm fetches the foreign
+> binary instead of filtering it out by host:
+>
+> ```sh
+> npm install --cpu=x64 --os=win32 @noem/platform-keystore
+> ```
+
 ## Usage
 
 Every function is **async by default** (returns a `Promise`; the blocking TPM
@@ -157,12 +174,26 @@ If a caller knows their secret is UTF-8 text, wrap at the call site with
 ## Development
 
 ```sh
-pnpm build   # napi build (CJS + ESM) into dist/
+pnpm build   # napi build (CJS + ESM) into dist/ — host triple
 pnpm test    # vitest smoke tests + cargo llvm-cov (Rust unit tests w/ coverage)
 pnpm lint    # biome + cargo fmt + clippy + tsc
 ```
 
 The native crate is `noem-platform-keystore` (`Cargo.toml`); Rust sources live in `src/`.
+
+### Release flow
+
+Releases use [Changesets](https://github.com/changesets/changesets). After a
+Version Packages PR merges, `.github/workflows/release.yml` matrix-builds the
+crate on Windows + macOS runners (one job per `napi.targets` entry), uploads
+each `.node`, then a publish job runs `napi pre-publish` to publish the per-
+platform subpackages and `changeset publish` for the main package. The
+matrix is generated dynamically from `packages-rust/*/package.json` by
+`scripts/release-matrix.mts` — no per-package hardcoding in the workflow.
+
+`build:ci` in `package.json` is the matrix-runner build entry (pins
+`--target $TARGET`). Local dev uses the regular `build` script (host
+triple only).
 
 ### Tests & coverage
 
