@@ -1,9 +1,9 @@
 [workspace]
-# Only Rust packages belong here. `packages/*` would glob the JS-only packages
-# (encryption, luhn) which have no Cargo.toml and break `cargo metadata`, so list
-# the native crate(s) explicitly. Add new Rust crates here as they're created.
-members = ["packages/platform-keystore"]
-resolver = "2"
+# Every directory under `packages-rust/` is a Rust crate. If a tool ever
+# drops a non-crate dir at this level (turbo cache, etc.) and cargo metadata
+# errors, add that dir to `exclude` rather than dropping the glob.
+members = ["packages-rust/*"]
+resolver = "3"
 
 # Workspace-level release profile. Cargo ignores `[profile.*]` in member
 # manifests, so the native addon's optimizations live here.

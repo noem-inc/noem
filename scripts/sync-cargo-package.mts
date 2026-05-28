@@ -15,7 +15,7 @@ type CargoTomlConfig = {
 };
 
 const repoRootDir = resolve(import.meta.dirname, '..');
-const packagesRootDir = resolve(repoRootDir, 'packages');
+const packagesRootDir = resolve(repoRootDir, 'packages-rust');
 
 for (const entry of readdirSync(packagesRootDir, { withFileTypes: true })) {
   // This entry is not a directory thus is invalid

@@ -3,8 +3,8 @@
 /**
  * Sync napi-rs per-platform subpackage versions to match their parent package.
  *
- * For each `packages/<pkg>/` that has an `npm/<triple>/package.json` (created
- * by `napi create-npm-dirs`), rewrite:
+ * For each `packages-rust/<pkg>/` that has an `npm/<triple>/package.json`
+ * (created by `napi create-npm-dirs`), rewrite:
  *
  *   - every `npm/<triple>/package.json`'s `version` to the parent's `version`
  *   - the parent's `optionalDependencies[<subpackage-name>]` to match
@@ -27,7 +27,7 @@ type PackageJson = {
 };
 
 const repoRootDir = resolve(import.meta.dirname, '..');
-const packagesRootDir = resolve(repoRootDir, 'packages');
+const packagesRootDir = resolve(repoRootDir, 'packages-rust');
 
 for (const entry of readdirSync(packagesRootDir, { withFileTypes: true })) {
   if (!entry.isDirectory()) {

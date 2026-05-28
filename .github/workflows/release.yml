@@ -8,18 +8,133 @@ on:
 concurrency: ${{ github.workflow }}-${{ github.ref }}
 
 jobs:
-  release:
+  # Stage A: maintain the "Version Packages" PR. When that PR merges, all
+  # .changeset/*.md are consumed → hasChangesets == "false" → Stages B/C fire.
+  # Also detects which packages-rust/* crates were actually bumped and emits
+  # the per-target build matrix.
+  version:
     runs-on: ubuntu-latest
     permissions:
       contents: write
       pull-requests: write
+    outputs:
+      hasChangesets: ${{ steps.changesets.outputs.hasChangesets }}
+      matrix: ${{ steps.matrix.outputs.matrix }}
+      changedPackages: ${{ steps.matrix.outputs.changedPackages }}
+      nativeChanged: ${{ steps.matrix.outputs.nativeChanged }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          # HEAD~1 needed to diff the merge commit and see which package.json
+          # versions were bumped.
+          fetch-depth: 2
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # Opens / updates the Version Packages PR. We intentionally do NOT pass
+      # `publish:` — publishing happens in the matrixed jobs below so each
+      # platform binary builds on its native runner.
+      - id: changesets
+        uses: changesets/action@v1
+        with:
+          version: pnpm run version
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Discovers packages-rust/<pkg> whose version was bumped, expands their
+      # napi.targets into matrix entries, maps triple → runner.
+      - id: matrix
+        if: steps.changesets.outputs.hasChangesets == 'false'
+        run: node scripts/release-matrix.mts
+
+  # Stage B: build a .node per (package, target) on its native runner.
+  # Matrix is fully data-driven from packages-rust/<pkg>/package.json napi
+  # config — no hardcoded package names.
+  build:
+    needs: version
+    if: needs.version.outputs.hasChangesets == 'false' && needs.version.outputs.nativeChanged == 'true'
+    strategy:
+      matrix: ${{ fromJson(needs.version.outputs.matrix) }}
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: packages-rust/${{ matrix.pkg }}
+          key: ${{ matrix.target }}
+
+      - run: pnpm install --frozen-lockfile
+
+      # `shell: bash` so $TARGET expands identically on windows-latest (which
+      # defaults to PowerShell). The package's own `build:ci` script picks up
+      # the env var.
+      - name: Build ${{ matrix.pkg }} for ${{ matrix.target }}
+        shell: bash
+        run: TARGET=${{ matrix.target }} pnpm --filter ${{ matrix.pkgName }} build:ci
+
+      - name: Upload .node binary
+        uses: actions/upload-artifact@v7
+        with:
+          name: bindings-${{ matrix.pkg }}-${{ matrix.target }}
+          path: packages-rust/${{ matrix.pkg }}/dist/*.node
+          if-no-files-found: error
+
+      # One matrix entry per package is flagged jsLoader; that job uploads the
+      # shared JS wrapper / .d.ts that napi build emits (identical across all
+      # targets for a given package).
+      - name: Upload JS loader (once per package)
+        if: matrix.jsLoader
+        uses: actions/upload-artifact@v7
+        with:
+          name: js-loader-${{ matrix.pkg }}
+          path: |
+            packages-rust/${{ matrix.pkg }}/dist/index.js
+            packages-rust/${{ matrix.pkg }}/dist/index.cjs
+            packages-rust/${{ matrix.pkg }}/dist/index.d.ts
+            packages-rust/${{ matrix.pkg }}/dist/index.d.cts
+          if-no-files-found: error
+
+  # Stage C: assemble artifacts per changed crate, publish per-platform
+  # subpackages via `napi pre-publish`, then `changeset publish` for the
+  # main packages (native + pure-JS siblings).
+  publish:
+    needs: [version, build]
+    # `always() && ...` so this still runs when `build` was SKIPPED — that's
+    # the case for releases that only bump JS-only packages. Without
+    # always(), GitHub treats the skip as a propagated skip.
+    if: |
+      always() &&
+      needs.version.outputs.hasChangesets == 'false' &&
+      (needs.build.result == 'success' || needs.build.result == 'skipped')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
       id-token: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version-file: .nvmrc
           cache: pnpm
@@ -27,14 +142,71 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      # OIDC trusted publishing needs npm >= 11.5.1; Node 24 bundles 11.3.0.
-      - run: npm install -g npm@latest
-
-      # Opens/updates a "Version Packages" PR; publishes to npm when that PR merges.
-      # No NODE_AUTH_TOKEN: publish authenticates via OIDC trusted publishing (id-token).
-      - uses: changesets/action@v1
+      # Steps below gated on nativeChanged — when only JS siblings were
+      # bumped, no .node binaries were built and napi pre-publish would 403
+      # on duplicate native subpackage versions.
+      - name: Download all .node bindings
+        if: needs.version.outputs.nativeChanged == 'true'
+        uses: actions/download-artifact@v8
         with:
-          version: pnpm run version
-          publish: pnpm run release
+          path: artifacts
+          pattern: bindings-*
+          # No merge-multiple: each artifact lands in its own subdir, so we
+          # can dispatch per-package below.
+
+      - name: Download all JS loaders
+        if: needs.version.outputs.nativeChanged == 'true'
+        uses: actions/download-artifact@v8
+        with:
+          path: js-loaders
+          pattern: js-loader-*
+
+      # Move each downloaded artifact into the right package directory so
+      # `napi artifacts` / `napi pre-publish` see them.
+      - name: Distribute artifacts to packages
+        if: needs.version.outputs.nativeChanged == 'true'
+        run: |
+          for pkg in $(echo '${{ needs.version.outputs.changedPackages }}' | jq -r '.[]'); do
+            echo "::group::Distribute artifacts for $pkg"
+            mkdir -p "packages-rust/$pkg/artifacts"
+            # Flatten all bindings-<pkg>-<target>/ subdirs into the package's
+            # artifacts/ — napi artifacts will sort them into npm/<triple>/.
+            for dir in artifacts/bindings-"$pkg"-*; do
+              [ -d "$dir" ] && cp -r "$dir"/. "packages-rust/$pkg/artifacts/"
+            done
+            # JS loader / .d.ts go straight into the package's dist/.
+            if [ -d "js-loaders/js-loader-$pkg" ]; then
+              cp -r "js-loaders/js-loader-$pkg"/. "packages-rust/$pkg/dist/"
+            fi
+            echo "::endgroup::"
+          done
+
+      # For each changed crate: wire .node files into npm/<triple>/, then run
+      # napi pre-publish which syncs subpackage versions and `npm publish`es
+      # each one. Auth via OIDC.
+      - name: Publish per-platform subpackages
+        if: needs.version.outputs.nativeChanged == 'true'
+        run: |
+          for pkg in $(echo '${{ needs.version.outputs.changedPackages }}' | jq -r '.[]'); do
+            echo "::group::Publish native subpackages for $pkg"
+            pushd "packages-rust/$pkg" > /dev/null
+            pnpm exec napi artifacts --output-dir artifacts
+            pnpm exec napi pre-publish
+            popd > /dev/null
+            echo "::endgroup::"
+          done
+
+      # Build pure-JS packages (luhn, encryption, ...) so changeset publish
+      # has fresh dist/ for each. Excludes everything under packages-rust/
+      # because those crates can't compile on Linux and their dist/ JS loader
+      # is already in place from the distribute-artifacts step (when included).
+      - name: Build JS-only packages
+        run: pnpm exec turbo run build --filter='./packages/*'
+
+      # Publishes every workspace package whose version is newer than npm —
+      # native crates plus any pure-JS siblings bumped by this release.
+      # Unchanged packages are no-ops.
+      - name: Publish via Changesets
+        run: pnpm exec changeset publish
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
