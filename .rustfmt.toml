@@ -1,0 +1,9 @@
+use_field_init_shorthand = true
+edition = "2024"
+
+# group_imports = "StdExternalCrate"
+# reorder_impl_items = true
+# imports_granularity = "Crate"
+# hex_literal_case = "Lower"
+# wrap_comments = true
+# format_strings = true

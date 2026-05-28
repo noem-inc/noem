@@ -136,6 +136,24 @@ interface SealedBlob {
   reliably zeroed due to V8 GC — minimize their lifetime and avoid copying.
 - `deleteKey` is destructive and irreversible.
 
+### Why `Buffer` and not `string` for plaintext?
+
+`seal`/`unseal` take and return `Buffer` rather than `string`. This is deliberate:
+
+- **V8 string hygiene is worse than `Buffer`.** JS strings are immutable, interned, and
+  copied on concat/slice — a secret passed as `string` can sit in multiple V8 heap pages
+  with no way to overwrite it. `Buffer` is backed by an `ArrayBuffer` whose bytes can at
+  least be best-effort overwritten with `buf.fill(0)` before the reference is dropped
+  (subject to the GC caveat above).
+- **Plaintext is not always UTF-8.** The intended consumer (SQLCipher's `PRAGMA key`) accepts
+  raw byte keys, not just passphrases. A `string` API would force hex/base64 round-trips at
+  every call site and leak the secret into more V8 string slots along the way.
+- **Ciphertext is a `string` on purpose.** `SealedBlob.ciphertext` is base64 — non-sensitive
+  and meant to be JSON-serialized to disk, so a `string` is correct there.
+
+If a caller knows their secret is UTF-8 text, wrap at the call site with
+`Buffer.from(s, 'utf8')` / `buf.toString('utf8')` and drop the reference promptly.
+
 ## Development
 
 ```sh
