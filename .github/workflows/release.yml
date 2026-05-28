@@ -88,15 +88,17 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      # `shell: bash` so $TARGET expands identically on windows-latest (which
-      # defaults to PowerShell). `npm_config_script_shell=bash` forces pnpm to
-      # run the package's `build:ci` via git bash on Windows too — otherwise
-      # cmd.exe runs the script and leaves `$TARGET` unexpanded.
+      # napi invoked directly (not via the package's `build:ci` script) so we
+      # don't depend on pnpm's script-runner shell. pnpm spawns the script via
+      # cmd.exe on Windows even when the parent step runs in bash, which
+      # leaves `$TARGET` literally unexpanded. Calling napi here keeps the
+      # variable substitution in GitHub's templating.
       - name: Build ${{ matrix.pkg }} for ${{ matrix.target }}
         shell: bash
-        env:
-          npm_config_script_shell: bash
-        run: TARGET=${{ matrix.target }} pnpm --filter ${{ matrix.pkgName }} build:ci
+        working-directory: packages-rust/${{ matrix.pkg }}
+        run: |
+          pnpm exec napi build --platform --release --target ${{ matrix.target }} -o dist --js index.cjs --dts index.d.cts
+          pnpm exec napi build --platform --release --esm --target ${{ matrix.target }} -o dist --js index.js --dts index.d.ts
 
       - name: Upload .node binary
         uses: actions/upload-artifact@v7
