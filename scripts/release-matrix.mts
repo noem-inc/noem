@@ -68,12 +68,17 @@ function targetToRunner(target: string): string {
 }
 
 function versionBumpedInHead(relPath: string): boolean {
-  // `git show HEAD --format='' -- <file>` prints just the diff of that file
-  // in the current commit. We look for an added `"version":` line — that's
-  // what Changesets emits when bumping.
+  // Diff the file between the previous main tip (HEAD~1) and the new tip
+  // (HEAD), looking for an added `"version":` line — that's what Changesets
+  // emits when bumping. We can't use `git show HEAD` here: when the Version
+  // Packages PR lands as a merge commit, `git show` defaults to the combined
+  // (--cc) diff, which suppresses hunks that match either parent and so
+  // prints nothing for the version bump. `git diff HEAD~1 HEAD` works
+  // identically for merge, squash, and rebase merges. The Release workflow
+  // sets `fetch-depth: 2` on the checkout so HEAD~1 resolves on CI.
   const diff = execFileSync(
     'git',
-    ['show', 'HEAD', '--format=', '--', `${relPath}/package.json`],
+    ['diff', 'HEAD~1', 'HEAD', '--', `${relPath}/package.json`],
     {
       encoding: 'utf-8',
     },
