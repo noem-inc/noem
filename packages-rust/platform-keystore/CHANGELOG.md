@@ -1,5 +1,11 @@
 # @noem/platform-keystore
 
+## 0.0.2
+
+### Patch Changes
+
+- ef33fa8: Test release process
+
 ## 0.0.1
 
 ### Patch Changes
