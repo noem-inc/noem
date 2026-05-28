@@ -89,10 +89,13 @@ jobs:
       - run: pnpm install --frozen-lockfile
 
       # `shell: bash` so $TARGET expands identically on windows-latest (which
-      # defaults to PowerShell). The package's own `build:ci` script picks up
-      # the env var.
+      # defaults to PowerShell). `npm_config_script_shell=bash` forces pnpm to
+      # run the package's `build:ci` via git bash on Windows too — otherwise
+      # cmd.exe runs the script and leaves `$TARGET` unexpanded.
       - name: Build ${{ matrix.pkg }} for ${{ matrix.target }}
         shell: bash
+        env:
+          npm_config_script_shell: bash
         run: TARGET=${{ matrix.target }} pnpm --filter ${{ matrix.pkgName }} build:ci
 
       - name: Upload .node binary
