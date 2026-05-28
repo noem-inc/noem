@@ -24,6 +24,29 @@ type PackageJson = {
   name: string;
   version: string;
   optionalDependencies?: Record<string, string>;
+  description: string;
+  keywords: string[];
+  author: {
+    name: string;
+    url: string;
+  };
+  homepage: string;
+  license: string;
+  engines: {
+    node: string;
+  };
+  repository: {
+    type: string;
+    url: string;
+    directory: string;
+  };
+  bugs: {
+    url: string;
+  };
+  publishConfig: {
+    access: string;
+    provenance?: boolean;
+  };
 };
 
 const repoRootDir = resolve(import.meta.dirname, '..');
@@ -46,10 +69,9 @@ for (const entry of readdirSync(packagesRootDir, { withFileTypes: true })) {
   const parentPkg = JSON.parse(
     readFileSync(packageJsonPath, 'utf-8'),
   ) as PackageJson;
-  const targetVersion = parentPkg.version;
 
   console.log(
-    `Syncing napi subpackages for ${entry.name} → version=(${targetVersion})`,
+    `Syncing napi subpackages for ${entry.name} → version=(${parentPkg.version})`,
   );
 
   const subpackageNames: string[] = [];
@@ -65,7 +87,19 @@ for (const entry of readdirSync(packagesRootDir, { withFileTypes: true })) {
     }
 
     const subPkg = JSON.parse(readFileSync(subPkgPath, 'utf-8')) as PackageJson;
-    subPkg.version = targetVersion;
+
+    // Sync the correct properties
+    subPkg.version = parentPkg.version;
+    subPkg.description = parentPkg.description;
+    subPkg.keywords = parentPkg.keywords;
+    subPkg.author = parentPkg.author;
+    subPkg.homepage = parentPkg.homepage;
+    subPkg.license = parentPkg.license;
+    subPkg.engines = parentPkg.engines;
+    subPkg.repository = parentPkg.repository;
+    subPkg.bugs = parentPkg.bugs;
+    subPkg.publishConfig = parentPkg.publishConfig;
+
     subpackageNames.push(subPkg.name);
 
     // Preserve JSON style: 2-space indent + trailing newline. Matches the
@@ -84,8 +118,8 @@ for (const entry of readdirSync(packagesRootDir, { withFileTypes: true })) {
 
     for (const name of subpackageNames) {
       if (name in parentPkg.optionalDependencies) {
-        if (parentPkg.optionalDependencies[name] !== targetVersion) {
-          parentPkg.optionalDependencies[name] = targetVersion;
+        if (parentPkg.optionalDependencies[name] !== parentPkg.version) {
+          parentPkg.optionalDependencies[name] = parentPkg.version;
           hasChanged = true;
         }
       }

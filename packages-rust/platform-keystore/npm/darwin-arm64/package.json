@@ -10,8 +10,6 @@
   ],
   "description": "TPM-backed hardware key storage for Node — provision non-exportable keys and seal/unseal secrets via the Windows NCrypt Platform KSP",
   "keywords": [
-    "arm64",
-    "mac",
     "tpm",
     "keystore",
     "ncrypt",
@@ -42,7 +40,8 @@
     "url": "https://github.com/noem-inc/noem/issues"
   },
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "provenance": true
   },
   "os": [
     "darwin"
