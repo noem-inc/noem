@@ -138,15 +138,6 @@ jobs:
     permissions:
       contents: write
       id-token: write
-    # `napi pre-publish` rewrites parent `optionalDependencies` from
-    # `link:./npm/<triple>` to concrete `<version>` so the published main
-    # package pins its native sub-pkgs. That mutation makes pnpm's
-    # auto-recheck flag the lockfile as out-of-date on every subsequent
-    # `pnpm exec` (Build JS-only, Publish via Changesets). We've already
-    # done the strict `pnpm install --frozen-lockfile` below; suppress the
-    # recheck for the rest of the job.
-    env:
-      npm_config_verify_deps_before_run: 'false'
     steps:
       - uses: actions/checkout@v6
 
@@ -159,6 +150,19 @@ jobs:
           registry-url: https://registry.npmjs.org
 
       - run: pnpm install --frozen-lockfile
+
+      # `napi pre-publish` rewrites parent `optionalDependencies` from
+      # `link:./npm/<triple>` to concrete `<version>` so the published main
+      # package pins its native sub-pkgs. That mutation makes pnpm's
+      # auto-recheck flag the lockfile as out-of-date on every subsequent
+      # `pnpm exec` (Build JS-only, Publish via Changesets). The strict
+      # `pnpm install --frozen-lockfile` above already validated state.
+      #
+      # pnpm v11 loads `verifyDepsBeforeRun` ONLY from pnpm-workspace.yaml —
+      # `npm_config_verify_deps_before_run` is silently ignored. Append it
+      # ephemerally to the runner's working copy (never committed).
+      - name: Disable pnpm deps recheck for rest of job
+        run: echo "verifyDepsBeforeRun: false" >> pnpm-workspace.yaml
 
       # Steps below gated on nativeChanged — when only JS siblings were
       # bumped, no .node binaries were built and napi pre-publish would 403
@@ -199,12 +203,16 @@ jobs:
             echo "::endgroup::"
           done
 
-      # For each changed crate: wire .node files into npm/<triple>/, then run
-      # napi pre-publish which syncs subpackage versions and `npm publish`es
-      # each one. Auth via OIDC.
+      # For each changed crate: wire .node files into npm/<triple>/, run
+      # napi pre-publish for manifest mutations only, then publish each
+      # subpackage ourselves with tolerance for "version already exists" —
+      # required when re-running a workflow that partially published before
+      # failing downstream (e.g. failed JS-only build strands the parent).
+      # Auth via OIDC.
       - name: Publish per-platform subpackages
         if: needs.version.outputs.nativeChanged == 'true'
         run: |
+          set -euo pipefail
           for pkg in $(echo '${{ needs.version.outputs.changedPackages }}' | jq -r '.[]'); do
             echo "::group::Publish native subpackages for $pkg"
             pushd "packages-rust/$pkg" > /dev/null
@@ -215,7 +223,31 @@ jobs:
             # release, which fails for recovery commits ("Recover stranded
             # napi sub-packages in release matrix" etc.) that don't name a
             # specific package.
-            pnpm exec napi pre-publish --no-gh-release
+            #
+            # `--skip-optional-publish` runs only the manifest mutations
+            # (subpackage version sync + parent optionalDependencies pin)
+            # and skips the `npm publish` loop — we replace it below with
+            # one that tolerates duplicate-version errors.
+            pnpm exec napi pre-publish --no-gh-release --skip-optional-publish
+
+            # Per-platform subpackage publish with idempotent re-run support.
+            # Subpackages carry their own publishConfig.provenance:true, so
+            # OIDC provenance attaches without an explicit --provenance flag.
+            for npm_dir in npm/*/; do
+              [ -d "$npm_dir" ] || continue
+              sub_name=$(jq -r .name "$npm_dir/package.json")
+              sub_ver=$(jq -r .version "$npm_dir/package.json")
+              echo "→ publishing $sub_name@$sub_ver"
+              if npm publish "$npm_dir" 2> >(tee /tmp/npm-publish.err >&2); then
+                echo "✓ published $sub_name@$sub_ver"
+              elif grep -qiE 'EPUBLISHCONFLICT|cannot publish over|previously published' /tmp/npm-publish.err; then
+                echo "⊘ skip $sub_name@$sub_ver — already on registry"
+              else
+                echo "✗ publish failed for $sub_name@$sub_ver" >&2
+                exit 1
+              fi
+            done
+
             popd > /dev/null
             echo "::endgroup::"
           done
