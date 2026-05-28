@@ -1,6 +1,6 @@
 {
   "name": "@noem/platform-keystore",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "TPM-backed hardware key storage for Node — provision non-exportable keys and seal/unseal secrets via the Windows NCrypt Platform KSP",
   "keywords": [
     "tpm",
