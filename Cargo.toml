@@ -1,0 +1,12 @@
+[workspace]
+# Only Rust packages belong here. `packages/*` would glob the JS-only packages
+# (encryption, luhn) which have no Cargo.toml and break `cargo metadata`, so list
+# the native crate(s) explicitly. Add new Rust crates here as they're created.
+members = ["packages/platform-keystore"]
+resolver = "2"
+
+# Workspace-level release profile. Cargo ignores `[profile.*]` in member
+# manifests, so the native addon's optimizations live here.
+[profile.release]
+lto = true
+strip = "symbols"

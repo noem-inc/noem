@@ -31,7 +31,3 @@ security-framework = "3"
 
 [build-dependencies]
 napi-build = "2"
-
-[profile.release]
-lto = true
-strip = "symbols"

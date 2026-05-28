@@ -39,6 +39,10 @@ Requires Node >= 18.
 
 ## Usage
 
+Every function is **async by default** (returns a `Promise`; the blocking TPM
+work runs on the libuv threadpool, so it never blocks the JS thread). Each has a
+blocking `*Sync` sibling (e.g. `sealSync`) for callers that want it.
+
 ```ts
 import {
   getProviderStatus,
@@ -48,33 +52,55 @@ import {
   unseal,
 } from "@noem/platform-keystore";
 
-const status = getProviderStatus();
+const status = await getProviderStatus();
 // { available: true, backend: 'ncrypt_tpm', tpmVersion: '2.0', ... }
 
+// One key per app/device seals many secrets. Provision once (e.g. at startup);
+// a missing key signals a problem, so check explicitly rather than auto-create.
 const KEY = "noem-db-key";
-if (!keyExists(KEY)) createKey(KEY);
+if (!(await keyExists(KEY))) await createKey(KEY);
 
-const sealed = seal(KEY, Buffer.from("super-secret-db-password"));
-// persist `sealed` to disk — ciphertext is base64
+const sealed = await seal(KEY, Buffer.from("super-secret-db-password"));
+// persist `sealed` to disk as-is — ciphertext is base64 and safe at rest
 
-const plaintext = unseal(KEY, sealed); // Buffer
+const plaintext = await unseal(KEY, sealed); // Buffer
 // pass straight to SQLCipher PRAGMA key, then drop the reference
+```
+
+Synchronous equivalent (blocks the calling thread):
+
+```ts
+import {
+  keyExistsSync,
+  createKeySync,
+  sealSync,
+} from "@noem/platform-keystore";
+
+const KEY = "noem-db-key";
+if (!keyExistsSync(KEY)) createKeySync(KEY);
+const sealed = sealSync(KEY, Buffer.from("super-secret-db-password"));
 ```
 
 ## API
 
-All functions throw on error (napi maps `KeyStoreError` to a thrown `Error`).
+Async functions reject on error; their `*Sync` siblings throw (napi maps
+`KeyStoreError` to an `Error` either way). Each row lists the async signature;
+the sync variant has the same args and an unwrapped return type
+(e.g. `sealSync(...): SealedBlob`).
 
-- `getProviderStatus(): ProviderStatus` — backend availability + TPM info.
-- `createKey(keyName: string): KeyInfo` — provision a new non-exportable key. Throws if it
-  already exists (check `keyExists` first).
-- `openKey(keyName: string): KeyInfo` — metadata for an existing key; throws if absent.
-- `keyExists(keyName: string): boolean`
-- `seal(keyName: string, plaintext: Buffer): SealedBlob` — encrypt; ciphertext is
+- `getProviderStatus(): Promise<ProviderStatus>` — backend availability + TPM info.
+- `createKey(keyName: string): Promise<KeyInfo>` — provision a new non-exportable key.
+  Rejects if it already exists (check `keyExists` first).
+- `openKey(keyName: string): Promise<KeyInfo>` — metadata for an existing key; rejects if absent.
+- `keyExists(keyName: string): Promise<boolean>`
+- `seal(keyName: string, plaintext: Buffer): Promise<SealedBlob>` — encrypt; ciphertext is
   base64-encoded for safe storage.
-- `unseal(keyName: string, blob: SealedBlob): Buffer` — decrypt.
-- `deleteKey(keyName: string): void` — **irreversible**; any data sealed with the key
+- `unseal(keyName: string, blob: SealedBlob): Promise<Buffer>` — decrypt.
+- `deleteKey(keyName: string): Promise<void>` — **irreversible**; any data sealed with the key
   becomes unrecoverable.
+
+Sync variants: `getProviderStatusSync`, `createKeySync`, `openKeySync`,
+`keyExistsSync`, `sealSync`, `unsealSync`, `deleteKeySync`.
 
 ### Types
 
