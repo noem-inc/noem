@@ -36,6 +36,10 @@ New packages live under `packages/*`; (see `pnpm-workspace.yaml`).
   ```powershell
   winget install Microsoft.VisualStudio.2022.BuildTools --override "--quiet --wait --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended"
   ```
+- **Windows:** Install llvm-cov:
+  ```powershell
+  cargo install cargo-llvm-cov
+  ```
 
 > A build error like ``error: linker `link.exe` not found`` (often cascading
 > across `serde_json`, `napi`, `proc-macro2`, …) means the C++ workload above is

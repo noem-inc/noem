@@ -28,8 +28,15 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
 
-      # Ensure cargo is on PATH for the napi (Rust) build.
+      # Ensure cargo is on PATH for the napi (Rust) build. llvm-tools-preview
+      # required by cargo-llvm-cov.
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: llvm-tools-preview
+
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-llvm-cov
 
       - run: pnpm install --frozen-lockfile
 
@@ -52,8 +59,15 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
 
-      # Ensure cargo is on PATH for the napi (Rust) build.
+      # Ensure cargo is on PATH for the napi (Rust) build. llvm-tools-preview
+      # required by cargo-llvm-cov.
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: llvm-tools-preview
+
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-llvm-cov
 
       - run: pnpm install --frozen-lockfile
 
@@ -72,8 +86,15 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
 
-      # Ensure cargo is on PATH for the napi (Rust) build.
+      # Ensure cargo is on PATH for the napi (Rust) build. llvm-tools-preview
+      # required by cargo-llvm-cov.
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: llvm-tools-preview
+
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-llvm-cov
 
       - run: pnpm install --frozen-lockfile
 
