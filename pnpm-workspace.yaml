@@ -2,11 +2,13 @@ packages:
   - "apps/*"
   - "packages/*"
   - "packages-rust/*"
-  # Per-platform napi binary subpackages. Workspace-linked so parent's
-  # optionalDependencies resolve locally before they're published to npm
-  # (closes the chicken-and-egg between version-bump and registry availability
-  # that breaks CI's frozen-lockfile install).
-  - "packages-rust/*/npm/*"
+  # NOTE: per-platform napi subpackages under `packages-rust/*/npm/*` are
+  # intentionally NOT workspace members. Parent crates reference them via
+  # `link:./npm/<triple>` so the lockfile resolves locally (avoiding the
+  # chicken-and-egg with unpublished versions) without exposing them to
+  # changesets, which can't ignore a dependency of a non-ignored package.
+  # `napi pre-publish` rewrites parent's optionalDependencies to concrete
+  # versions at publish time.
 
 catalog:
   "@biomejs/biome": ^2.4.15
