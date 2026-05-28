@@ -20,3 +20,9 @@ minimumReleaseAge: 7200
 
 minimumReleaseAgeExclude:
   - valibot@1.4.1
+  # All internal packages (main + napi platform subpackages) are published
+  # from this repo and not subject to the external-dep cool-off. Without
+  # this, the 5-day window blocks freshly-bumped subpackages from entering
+  # pnpm-lock.yaml and CI's frozen install errors. Glob form added in
+  # pnpm 10.16; we're on 11.3.
+  - "@noem/*"

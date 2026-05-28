@@ -60,6 +60,10 @@ jobs:
   build:
     needs: version
     if: needs.version.outputs.hasChangesets == 'false' && needs.version.outputs.nativeChanged == 'true'
+    # Build only reads code (checkout) + runs cargo/pnpm/upload-artifact —
+    # no GitHub API writes. upload-artifact uses Actions internal storage.
+    permissions:
+      contents: read
     strategy:
       matrix: ${{ fromJson(needs.version.outputs.matrix) }}
     runs-on: ${{ matrix.os }}

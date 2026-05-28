@@ -18,7 +18,7 @@
  * pretty JSON for debugging.
  */
 
-import { execSync } from 'node:child_process';
+import { execFileSync } from 'node:child_process';
 import { appendFileSync, existsSync, readdirSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
@@ -71,8 +71,9 @@ function versionBumpedInHead(relPath: string): boolean {
   // `git show HEAD --format='' -- <file>` prints just the diff of that file
   // in the current commit. We look for an added `"version":` line — that's
   // what Changesets emits when bumping.
-  const diff = execSync(
-    `git show HEAD --format= -- '${relPath}/package.json'`,
+  const diff = execFileSync(
+    'git',
+    ['show', 'HEAD', '--format=', '--', `${relPath}/package.json`],
     {
       encoding: 'utf-8',
     },
