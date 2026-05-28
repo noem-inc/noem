@@ -131,3 +131,74 @@ impl std::fmt::Debug for SecretBytes {
         write!(f, "SecretBytes([REDACTED; {} bytes])", self.0.len())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn secret_bytes_roundtrip() {
+        let s = SecretBytes::new(vec![1, 2, 3, 4]);
+        assert_eq!(s.as_slice(), &[1, 2, 3, 4]);
+    }
+
+    #[test]
+    fn secret_bytes_debug_redacts_contents() {
+        let dbg = format!("{:?}", SecretBytes::new(vec![0xAB; 5]));
+        assert!(dbg.contains("REDACTED"));
+        assert!(dbg.contains("5 bytes"));
+        assert!(!dbg.contains("171")); // 0xAB never printed
+    }
+
+    #[test]
+    fn error_display_messages() {
+        assert_eq!(
+            KeyStoreError::ProviderUnavailable.to_string(),
+            "TPM/Keychain provider not available on this platform"
+        );
+        assert_eq!(
+            KeyStoreError::KeyNotFound("k".into()).to_string(),
+            "Key 'k' not found"
+        );
+        assert_eq!(
+            KeyStoreError::KeyAlreadyExists("k".into()).to_string(),
+            "Key 'k' already exists"
+        );
+        assert_eq!(
+            KeyStoreError::EncryptionFailed("boom".into()).to_string(),
+            "Encryption failed: boom"
+        );
+        assert_eq!(
+            KeyStoreError::DecryptionFailed("boom".into()).to_string(),
+            "Decryption failed: boom"
+        );
+        assert_eq!(
+            KeyStoreError::ProvisioningFailed("boom".into()).to_string(),
+            "Key provisioning failed: boom"
+        );
+        assert_eq!(
+            KeyStoreError::PlatformError("oops".into(), 5).to_string(),
+            "Platform error: oops (code: 5)"
+        );
+    }
+
+    #[test]
+    fn keystore_error_maps_to_napi_error_reason() {
+        let err: napi::Error = KeyStoreError::KeyNotFound("abc".into()).into();
+        assert_eq!(err.reason, "Key 'abc' not found");
+    }
+
+    #[test]
+    fn backend_serde_snake_case() {
+        assert_eq!(
+            serde_json::to_string(&Backend::NcryptTpm).unwrap(),
+            "\"ncrypt_tpm\""
+        );
+        assert_eq!(
+            serde_json::to_string(&Backend::MacosKeychain).unwrap(),
+            "\"macos_keychain\""
+        );
+        let b: Backend = serde_json::from_str("\"ncrypt_tpm\"").unwrap();
+        assert_eq!(b, Backend::NcryptTpm);
+    }
+}

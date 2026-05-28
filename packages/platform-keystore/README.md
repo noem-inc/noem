@@ -139,9 +139,28 @@ interface SealedBlob {
 ## Development
 
 ```sh
-pnpm build        # napi build (CJS + ESM) into dist/
-pnpm test         # vitest
-pnpm lint         # biome + cargo fmt + clippy + tsc
+pnpm build   # napi build (CJS + ESM) into dist/
+pnpm test    # vitest smoke tests + cargo llvm-cov (Rust unit tests w/ coverage)
+pnpm lint    # biome + cargo fmt + clippy + tsc
 ```
 
 The native crate is `noem-platform-keystore` (`Cargo.toml`); Rust sources live in `src/`.
+
+### Tests & coverage
+
+The logic lives in the native addon, so the JS side has two roles:
+
+- `test/smoke.test.ts` — **integration smoke test** of the built addon.
+  The real TPM `seal`/`unseal` roundtrip only runs on Windows + TPM hardware;
+  on macOS it asserts the stub throws, on CI Windows runners without a TPM it
+  asserts `ProviderUnavailable`.
+- `#[cfg(test)]` **Rust unit tests** in `src/` exercise the per-platform logic
+  directly. `build.rs` adds link-args so the test binary links despite the napi
+  glue referencing symbols Node provides at runtime.
+
+`pnpm test` runs `cargo llvm-cov` after vitest: it builds the instrumented
+tests, writes an HTML report to `coverage/html/index.html`, and prints a text
+summary to stdout. JS-side coverage is disabled in `vitest.config.ts` — the
+addon's behavior is covered by the Rust tests. On macOS this covers `types.rs`,
+the `DevKeyStorage` stub, and the cross-platform helpers; the NCrypt paths
+(`src/windows/`) are covered only on Windows with a TPM.

@@ -10,7 +10,7 @@
     "changeset": "changeset",
     "version": "changeset version && node scripts/sync-cargo-version.mjs",
     "release": "turbo run build --filter=./packages/* && changeset publish",
-    "clean": "find . -type d \\( -name node_modules -o -name .turbo -o -name coverage \\) -prune -exec rm -rf {} +"
+    "clean": "find . -type d \\( -name node_modules -o -name .turbo -o -name coverage -o -name target \\) -prune -exec rm -rf {} +"
   },
   "devDependencies": {
     "@biomejs/biome": "catalog:",

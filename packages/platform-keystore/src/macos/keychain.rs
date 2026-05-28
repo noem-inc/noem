@@ -102,3 +102,65 @@ impl KeyStorageProvider for DevKeyStorage {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::provider::KeyStorageProvider;
+
+    fn provider() -> DevKeyStorage {
+        DevKeyStorage::new().unwrap()
+    }
+
+    #[test]
+    fn status_reports_dev_backend() {
+        let s = provider().status().unwrap();
+        assert!(s.available);
+        assert_eq!(s.backend, Some(Backend::MacosKeychain));
+        assert!(s.message.contains("NOT FOR PRODUCTION"));
+    }
+
+    #[test]
+    fn create_key_returns_metadata() {
+        let info = provider().create_key("k", false).unwrap();
+        assert_eq!(info.name, "k");
+        assert_eq!(info.backend, Backend::MacosKeychain);
+        assert!(!info.exportable);
+        assert_eq!(info.algorithm, "EC-P256-SE");
+    }
+
+    #[test]
+    fn open_key_returns_metadata() {
+        let info = provider().open_key("k").unwrap();
+        assert_eq!(info.algorithm, "EC-P256-SE");
+        assert_eq!(info.backend, Backend::MacosKeychain);
+    }
+
+    #[test]
+    fn key_exists_is_false_in_stub() {
+        assert!(!provider().key_exists("k").unwrap());
+    }
+
+    #[test]
+    fn seal_and_unseal_not_implemented() {
+        let seal_err = provider()
+            .seal("k", SecretBytes::new(b"x".to_vec()))
+            .unwrap_err();
+        assert!(matches!(seal_err, KeyStoreError::EncryptionFailed(_)));
+        assert!(seal_err.to_string().contains("not yet implemented"));
+
+        let blob = SealedBlob {
+            ciphertext: String::new(),
+            key_name: "k".into(),
+            backend: Backend::MacosKeychain,
+        };
+        let unseal_err = provider().unseal("k", &blob).unwrap_err();
+        assert!(matches!(unseal_err, KeyStoreError::DecryptionFailed(_)));
+        assert!(unseal_err.to_string().contains("not yet implemented"));
+    }
+
+    #[test]
+    fn delete_key_is_ok() {
+        assert!(provider().delete_key("k").is_ok());
+    }
+}

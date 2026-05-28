@@ -503,6 +503,73 @@ fn get_string_property(handle: NCRYPT_HANDLE, prop: PCWSTR) -> Result<String, Ke
     Ok(String::from_utf16_lossy(&wide[..end]))
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::provider::KeyStorageProvider;
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    /// `Some(provider)` only when the Platform KSP is loadable — i.e. on a host
+    /// with a TPM. CI Windows runners without a TPM hit `Err(ProviderUnavailable)`
+    /// here, so each test early-returns and still passes.
+    fn maybe_provider() -> Option<TpmKeyStorage> {
+        TpmKeyStorage::new().ok()
+    }
+
+    fn unique_key_name(label: &str) -> String {
+        let nanos = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map(|d| d.as_nanos())
+            .unwrap_or(0);
+        format!("noem-rust-test-{}-{}-{}", label, std::process::id(), nanos)
+    }
+
+    #[test]
+    fn status_reports_tpm_backend() {
+        let Some(p) = maybe_provider() else { return };
+        let s = p.status().unwrap();
+        assert!(s.available);
+        assert_eq!(s.backend, Some(Backend::NcryptTpm));
+    }
+
+    #[test]
+    fn key_exists_false_for_missing() {
+        let Some(p) = maybe_provider() else { return };
+        assert!(!p.key_exists(&unique_key_name("missing")).unwrap());
+    }
+
+    #[test]
+    fn create_seal_unseal_roundtrip() {
+        let Some(p) = maybe_provider() else { return };
+        let key = unique_key_name("roundtrip");
+
+        // Inner closure so cleanup runs even when an assertion above fails.
+        let result: std::result::Result<(), KeyStoreError> = (|| {
+            p.create_key(&key, false)?;
+            assert!(p.key_exists(&key)?);
+
+            let blob = p.seal(&key, SecretBytes::new(b"correct-horse".to_vec()))?;
+            assert_eq!(blob.key_name, key);
+            assert_eq!(blob.backend, Backend::NcryptTpm);
+            assert!(!blob.ciphertext.is_empty());
+
+            let plain = p.unseal(&key, &blob)?;
+            assert_eq!(plain.as_slice(), b"correct-horse");
+            Ok(())
+        })();
+
+        let _ = p.delete_key(&key);
+        result.unwrap();
+    }
+
+    #[test]
+    fn create_key_rejects_exportable() {
+        let Some(p) = maybe_provider() else { return };
+        let err = p.create_key("noem-rust-test-exportable", true).unwrap_err();
+        assert!(matches!(err, KeyStoreError::ProvisioningFailed(_)));
+    }
+}
+
 /// Best-effort TPM version via TBS. Returns None if TBS is unavailable.
 fn query_tpm_version() -> Option<String> {
     let mut info = TPM_DEVICE_INFO::default();

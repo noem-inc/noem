@@ -10,6 +10,7 @@
     "secure-enclave",
     "encryption",
     "seal",
+    "nist",
     "napi",
     "native",
     "hardware-security"
@@ -63,7 +64,7 @@
   "scripts": {
     "build": "napi build --platform --release -o dist --js index.cjs --dts index.d.cts && napi build --platform --release --esm -o dist --js index.js --dts index.d.ts",
     "dev": "napi build --platform -o dist --js index.cjs --dts index.d.cts && napi build --platform --esm -o dist --js index.js --dts index.d.ts",
-    "test": "vitest run",
+    "test": "vitest run && cargo llvm-cov --html --output-dir coverage && cargo llvm-cov",
     "test:watch": "vitest",
     "lint": "biome check . && cargo fmt --check && cargo clippy && tsc --noEmit -p tsconfig.json",
     "lint:fix": "biome check --write . && cargo fmt && cargo clippy --fix --allow-dirty"

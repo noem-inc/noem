@@ -255,3 +255,93 @@ pub fn delete_key(key_name: String) -> AsyncTask<BlockingTask<()>> {
 pub fn delete_key_sync(key_name: String) -> napi::Result<()> {
     Ok(do_delete(&key_name)?)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use napi::Task; // for `.compute()` method resolution
+
+    // On macOS, create_provider() builds the DevKeyStorage stub, so the work
+    // helpers are exercisable here. (Windows needs a TPM — covered on CI there.)
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn do_status_reports_backend() {
+        assert_eq!(do_status().unwrap().backend, Some(Backend::MacosKeychain));
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn do_create_and_open_return_metadata() {
+        assert_eq!(do_create("k").unwrap().algorithm, "EC-P256-SE");
+        assert_eq!(do_open("k").unwrap().backend, Backend::MacosKeychain);
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn do_key_exists_false() {
+        assert!(!do_key_exists("k").unwrap());
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn do_seal_and_unseal_err_on_stub() {
+        assert!(do_seal("k", SecretBytes::new(b"x".to_vec())).is_err());
+        let blob = SealedBlob {
+            ciphertext: String::new(),
+            key_name: "k".into(),
+            backend: Backend::MacosKeychain,
+        };
+        assert!(do_unseal("k", &blob).is_err());
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn do_delete_ok() {
+        assert!(do_delete("k").is_ok());
+    }
+
+    // Windows: same helpers exercise the real TPM backend via `create_provider()`.
+    // Skip when no TPM is present (CI Windows runners) — `do_status()` fails with
+    // `ProviderUnavailable` there. The deep roundtrip lives in `ncrypt::tests`;
+    // these just confirm the lib.rs `do_*` wiring on the Windows arm.
+    #[cfg(target_os = "windows")]
+    #[test]
+    fn do_status_reports_tpm_on_windows() {
+        let Ok(s) = do_status() else { return };
+        assert_eq!(s.backend, Some(Backend::NcryptTpm));
+    }
+
+    #[cfg(target_os = "windows")]
+    #[test]
+    fn do_key_exists_false_for_missing_on_windows() {
+        if do_status().is_err() {
+            return; // no TPM
+        }
+        let nanos = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_nanos())
+            .unwrap_or(0);
+        let name = format!(
+            "noem-rust-test-lib-missing-{}-{}",
+            std::process::id(),
+            nanos
+        );
+        assert!(!do_key_exists(&name).unwrap());
+    }
+
+    #[test]
+    fn blocking_task_compute_returns_value() {
+        let mut task = BlockingTask::new(|| Ok::<_, KeyStoreError>(7i32));
+        assert_eq!(task.compute().unwrap(), 7);
+    }
+
+    #[test]
+    fn blocking_task_compute_maps_error_to_napi() {
+        let mut task = BlockingTask::new(|| Err::<i32, _>(KeyStoreError::ProviderUnavailable));
+        let err = task.compute().unwrap_err();
+        assert_eq!(
+            err.reason,
+            "TPM/Keychain provider not available on this platform"
+        );
+    }
+}
