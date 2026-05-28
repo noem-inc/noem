@@ -1,6 +1,6 @@
 [package]
 name = "noem-platform-keystore"
-version = "0.0.0"
+version = "0.0.1"
 edition = "2024"
 description = "TPM-backed hardware key storage for Node — provision non-exportable keys and seal/unseal secrets via the Windows NCrypt Platform KSP"
 license = "MIT"

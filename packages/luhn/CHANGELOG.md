@@ -1,5 +1,11 @@
 # @noem/luhn
 
+## 0.0.4
+
+### Patch Changes
+
+- 10e8f70: Internal: exercise the new multi-package release pipeline.
+
 ## 0.0.3
 
 ### Patch Changes
