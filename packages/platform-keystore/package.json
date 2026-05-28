@@ -57,12 +57,18 @@
       "aarch64-apple-darwin"
     ]
   },
+  "optionalDependencies": {
+    "@noem/platform-keystore-win32-x64-msvc": "0.0.0",
+    "@noem/platform-keystore-win32-arm64-msvc": "0.0.0",
+    "@noem/platform-keystore-darwin-arm64": "0.0.0"
+  },
   "publishConfig": {
     "access": "public",
     "provenance": true
   },
   "scripts": {
     "build": "napi build --platform --release -o dist --js index.cjs --dts index.d.cts && napi build --platform --release --esm -o dist --js index.js --dts index.d.ts",
+    "build:ci": "napi build --platform --release --target $TARGET -o dist --js index.cjs --dts index.d.cts && napi build --platform --release --esm --target $TARGET -o dist --js index.js --dts index.d.ts",
     "dev": "napi build --platform -o dist --js index.cjs --dts index.d.cts && napi build --platform --esm -o dist --js index.js --dts index.d.ts",
     "test": "vitest run && cargo llvm-cov --html --output-dir coverage && cargo llvm-cov",
     "test:watch": "vitest",
