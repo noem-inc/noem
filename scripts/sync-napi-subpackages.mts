@@ -4,17 +4,21 @@
  * Sync napi-rs per-platform subpackage versions to match their parent package.
  *
  * For each `packages-rust/<pkg>/` that has an `npm/<triple>/package.json`
- * (created by `napi create-npm-dirs`), rewrite:
- *
- *   - every `npm/<triple>/package.json`'s `version` to the parent's `version`
- *   - the parent's `optionalDependencies[<subpackage-name>]` to match
+ * (created by `napi create-npm-dirs`), rewrite every
+ * `npm/<triple>/package.json`'s `version` to the parent's `version`.
  *
  * Runs as part of `pnpm run version` so the "Version Packages" PR raised by
  * Changesets shows the correct future state for every subpackage, not the
  * stale `0.0.0` placeholder.
  *
- * Belt-and-suspenders with `napi pre-publish` (which does the same thing on
- * the publish runner) — this just keeps the working tree honest.
+ * We intentionally do NOT rewrite the parent's
+ * `optionalDependencies[<subpackage-name>]` here. Doing so bumps the specifier
+ * to a version that does not yet exist on npm (the matching subpackages are
+ * published later, in the `publish` job), which desyncs the lockfile and
+ * breaks `pnpm install --frozen-lockfile` in subsequent CI steps. The parent's
+ * optionalDependencies are rewritten just-in-time on the publish runner by
+ * `napi pre-publish` (see `.github/workflows/release.yml`), so published
+ * artifacts still reference the correct subpackage versions.
  */
 
 import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -23,7 +27,6 @@ import { resolve } from 'node:path';
 type PackageJson = {
   name: string;
   version: string;
-  optionalDependencies?: Record<string, string>;
   description: string;
   keywords: string[];
   author: {
@@ -74,8 +77,6 @@ for (const entry of readdirSync(packagesRootDir, { withFileTypes: true })) {
     `Syncing napi subpackages for ${entry.name} → version=(${parentPkg.version})`,
   );
 
-  const subpackageNames: string[] = [];
-
   for (const triple of readdirSync(npmDir, { withFileTypes: true })) {
     if (!triple.isDirectory()) {
       continue;
@@ -100,8 +101,6 @@ for (const entry of readdirSync(packagesRootDir, { withFileTypes: true })) {
     subPkg.bugs = parentPkg.bugs;
     subPkg.publishConfig = parentPkg.publishConfig;
 
-    subpackageNames.push(subPkg.name);
-
     // Preserve JSON style: 2-space indent + trailing newline. Matches the
     // output that `napi create-npm-dirs` produces.
     writeFileSync(
@@ -109,28 +108,5 @@ for (const entry of readdirSync(packagesRootDir, { withFileTypes: true })) {
       `${JSON.stringify(subPkg, undefined, 2)}\n`,
       'utf-8',
     );
-  }
-
-  // Rewrite parent's optionalDependencies to point at the same version. Only
-  // touch entries that already exist — leaves unrelated optional deps alone.
-  if (parentPkg.optionalDependencies) {
-    let hasChanged = false;
-
-    for (const name of subpackageNames) {
-      if (name in parentPkg.optionalDependencies) {
-        if (parentPkg.optionalDependencies[name] !== parentPkg.version) {
-          parentPkg.optionalDependencies[name] = parentPkg.version;
-          hasChanged = true;
-        }
-      }
-    }
-
-    if (hasChanged) {
-      writeFileSync(
-        packageJsonPath,
-        `${JSON.stringify(parentPkg, undefined, 2)}\n`,
-        'utf-8',
-      );
-    }
   }
 }
