@@ -1,0 +1,48 @@
+{
+  "name": "@noem/platform-keystore-win32-arm64-msvc",
+  "version": "0.0.0",
+  "cpu": [
+    "arm64"
+  ],
+  "main": "platform-keystore.win32-arm64-msvc.node",
+  "files": [
+    "platform-keystore.win32-arm64-msvc.node"
+  ],
+  "description": "TPM-backed hardware key storage for Node — provision non-exportable keys and seal/unseal secrets via the Windows NCrypt Platform KSP",
+  "keywords": [
+    "tpm",
+    "keystore",
+    "ncrypt",
+    "keychain",
+    "secure-enclave",
+    "encryption",
+    "seal",
+    "nist",
+    "napi",
+    "native",
+    "hardware-security"
+  ],
+  "author": {
+    "name": "Noem Inc.",
+    "url": "https://www.noem.io/"
+  },
+  "homepage": "https://github.com/noem-inc/noem/tree/main/packages/platform-keystore#readme",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/noem-inc/noem.git",
+    "directory": "packages/platform-keystore"
+  },
+  "bugs": {
+    "url": "https://github.com/noem-inc/noem/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "os": [
+    "win32"
+  ]
+}
