@@ -58,9 +58,9 @@
     ]
   },
   "optionalDependencies": {
-    "@noem/platform-keystore-win32-x64-msvc": "0.0.1",
-    "@noem/platform-keystore-win32-arm64-msvc": "0.0.1",
-    "@noem/platform-keystore-darwin-arm64": "0.0.1"
+    "@noem/platform-keystore-win32-x64-msvc": "workspace:*",
+    "@noem/platform-keystore-win32-arm64-msvc": "workspace:*",
+    "@noem/platform-keystore-darwin-arm64": "workspace:*"
   },
   "publishConfig": {
     "access": "public",

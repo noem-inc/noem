@@ -2,6 +2,11 @@ packages:
   - "apps/*"
   - "packages/*"
   - "packages-rust/*"
+  # Per-platform napi binary subpackages. Workspace-linked so parent's
+  # optionalDependencies resolve locally before they're published to npm
+  # (closes the chicken-and-egg between version-bump and registry availability
+  # that breaks CI's frozen-lockfile install).
+  - "packages-rust/*/npm/*"
 
 catalog:
   "@biomejs/biome": ^2.4.15
