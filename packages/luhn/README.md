@@ -2,6 +2,7 @@
 
 [![Release](https://github.com/noem-inc/noem/actions/workflows/release.yml/badge.svg?branch=main)](https://github.com/noem-inc/noem/actions/workflows/release.yml)
 [![npm version](https://img.shields.io/npm/v/@noem/luhn.svg)](https://www.npmjs.com/package/@noem/luhn)
+[![Security: Trusted Publisher](https://img.shields.io/badge/security-trusted--publisher-green?logo=github)](https://www.npmjs.com/package/@noem/luhn)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
 Luhn algorithm validation for card / SIN numbers.
