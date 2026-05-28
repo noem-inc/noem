@@ -1,6 +1,6 @@
 {
   "name": "@noem/luhn",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "Luhn algorithm (mod 10) validation for credit-card and SIN/SSN numbers",
   "keywords": [
     "luhn",

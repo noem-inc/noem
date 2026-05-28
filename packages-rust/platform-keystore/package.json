@@ -1,6 +1,6 @@
 {
   "name": "@noem/platform-keystore",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "TPM-backed hardware key storage for Node — provision non-exportable keys and seal/unseal secrets via the Windows NCrypt Platform KSP",
   "keywords": [
     "tpm",
@@ -58,9 +58,9 @@
     ]
   },
   "optionalDependencies": {
-    "@noem/platform-keystore-win32-x64-msvc": "0.0.0",
-    "@noem/platform-keystore-win32-arm64-msvc": "0.0.0",
-    "@noem/platform-keystore-darwin-arm64": "0.0.0"
+    "@noem/platform-keystore-win32-x64-msvc": "0.0.1",
+    "@noem/platform-keystore-win32-arm64-msvc": "0.0.1",
+    "@noem/platform-keystore-darwin-arm64": "0.0.1"
   },
   "publishConfig": {
     "access": "public",
