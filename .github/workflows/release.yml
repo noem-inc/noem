@@ -162,7 +162,8 @@ jobs:
       # `npm_config_verify_deps_before_run` is silently ignored. Append it
       # ephemerally to the runner's working copy (never committed).
       - name: Disable pnpm deps recheck for rest of job
-        run: echo "verifyDepsBeforeRun: false" >> pnpm-workspace.yaml
+        run: |
+          echo "verifyDepsBeforeRun: false" >> pnpm-workspace.yaml
 
       # Steps below gated on nativeChanged — when only JS siblings were
       # bumped, no .node binaries were built and napi pre-publish would 403
