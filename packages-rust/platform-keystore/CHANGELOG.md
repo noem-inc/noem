@@ -1,5 +1,11 @@
 # @noem/platform-keystore
 
+## 0.0.4
+
+### Patch Changes
+
+- 721c384: Trigger re-publish
+
 ## 0.0.3
 
 ### Patch Changes
