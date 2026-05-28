@@ -1,0 +1,49 @@
+{
+  "name": "@noem/platform-keystore-darwin-arm64",
+  "version": "0.0.0",
+  "cpu": [
+    "arm64"
+  ],
+  "main": "platform-keystore.darwin-arm64.node",
+  "files": [
+    "platform-keystore.darwin-arm64.node"
+  ],
+  "description": "TPM-backed hardware key storage for Node — provision non-exportable keys and seal/unseal secrets via the Windows NCrypt Platform KSP",
+  "keywords": [
+    "tpm",
+    "keystore",
+    "ncrypt",
+    "keychain",
+    "secure-enclave",
+    "encryption",
+    "seal",
+    "nist",
+    "napi",
+    "native",
+    "hardware-security"
+  ],
+  "author": {
+    "name": "Noem Inc.",
+    "url": "https://www.noem.io/"
+  },
+  "homepage": "https://github.com/noem-inc/noem/tree/main/packages-rust/platform-keystore#readme",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/noem-inc/noem.git",
+    "directory": "packages-rust/platform-keystore"
+  },
+  "bugs": {
+    "url": "https://github.com/noem-inc/noem/issues"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "os": [
+    "darwin"
+  ]
+}

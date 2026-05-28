@@ -8,16 +8,42 @@ Built with [pnpm](https://pnpm.io/) workspaces, [Turborepo](https://turborepo.de
 
 ## Packages
 
-| Package                       | Description                                       |
-| ----------------------------- | ------------------------------------------------- |
-| [`@noem/luhn`](packages/luhn) | Luhn algorithm validation for card / SIN numbers. |
+| Package                                                 | Description                                                                  |
+| ------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| [`@noem/encryption`](packages/encryption)               | Isomorphic field-level encryption (WebCrypto AES-256-GCM) with key rotation. |
+| [`@noem/luhn`](packages/luhn)                           | Luhn algorithm validation for card / SIN numbers.                            |
+| [`@noem/platform-keystore`](packages-rust/platform-keystore) | TPM-backed hardware key storage — seal/unseal via the Windows NCrypt KSP.    |
 
-New packages live under `packages/*`; apps under `apps/*` (see `pnpm-workspace.yaml`).
+New packages live under `packages/*`; (see `pnpm-workspace.yaml`).
 
 ## Requirements
 
 - Node `24` (see `.nvmrc` — run `nvm use`)
 - pnpm `11.3.0` (declared in `packageManager`)
+- rust `1.95.0` (declared in rust-toolchain.toml) (only for native packages)
+
+## Building Rust Packages
+
+### Prerequisites:
+
+- **Rust `1.95.0`** — pinned in `rust-toolchain.toml`; install via
+  [rustup](https://rustup.rs/), which reads the pin and the declared
+  `targets` automatically (no manual `rustup target add` needed).
+- **Windows: Visual Studio Build Tools with the "Desktop development with C++"
+  workload.** This provides the MSVC linker `link.exe`. VS Code alone is **not**
+  sufficient. Install via winget, then open a **fresh terminal** so `PATH`/env
+  pick up the new tools:
+  ```powershell
+  winget install Microsoft.VisualStudio.2022.BuildTools --override "--quiet --wait --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended"
+  ```
+- **Windows:** Install llvm-cov:
+  ```powershell
+  cargo install cargo-llvm-cov
+  ```
+
+> A build error like ``error: linker `link.exe` not found`` (often cascading
+> across `serde_json`, `napi`, `proc-macro2`, …) means the C++ workload above is
+> missing.
 
 ## Setup
 

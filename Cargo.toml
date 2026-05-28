@@ -1,0 +1,12 @@
+[workspace]
+# Every directory under `packages-rust/` is a Rust crate. If a tool ever
+# drops a non-crate dir at this level (turbo cache, etc.) and cargo metadata
+# errors, add that dir to `exclude` rather than dropping the glob.
+members = ["packages-rust/*"]
+resolver = "3"
+
+# Workspace-level release profile. Cargo ignores `[profile.*]` in member
+# manifests, so the native addon's optimizations live here.
+[profile.release]
+lto = true
+strip = "symbols"

@@ -2,8 +2,9 @@ import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
   test: {
-    coverage: {
+    reporters: ['verbose'],
 
+    coverage: {
       enabled: true,
 
       // Set provider to 'v8' or 'istanbul'

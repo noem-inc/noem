@@ -1,0 +1,89 @@
+{
+  "name": "@noem/platform-keystore",
+  "version": "0.0.0",
+  "description": "TPM-backed hardware key storage for Node — provision non-exportable keys and seal/unseal secrets via the Windows NCrypt Platform KSP",
+  "keywords": [
+    "tpm",
+    "keystore",
+    "ncrypt",
+    "keychain",
+    "secure-enclave",
+    "encryption",
+    "seal",
+    "nist",
+    "napi",
+    "native",
+    "hardware-security"
+  ],
+  "homepage": "https://github.com/noem-inc/noem/tree/main/packages-rust/platform-keystore#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/noem-inc/noem.git",
+    "directory": "packages-rust/platform-keystore"
+  },
+  "bugs": {
+    "url": "https://github.com/noem-inc/noem/issues"
+  },
+  "author": {
+    "name": "Noem Inc.",
+    "url": "https://www.noem.io/"
+  },
+  "type": "module",
+  "sideEffects": false,
+  "files": [
+    "dist",
+    "CHANGELOG.md"
+  ],
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    }
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "napi": {
+    "binaryName": "platform-keystore",
+    "targets": [
+      "x86_64-pc-windows-msvc",
+      "aarch64-pc-windows-msvc",
+      "aarch64-apple-darwin"
+    ]
+  },
+  "optionalDependencies": {
+    "@noem/platform-keystore-win32-x64-msvc": "0.0.0",
+    "@noem/platform-keystore-win32-arm64-msvc": "0.0.0",
+    "@noem/platform-keystore-darwin-arm64": "0.0.0"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "scripts": {
+    "build": "napi build --platform --release -o dist --js index.cjs --dts index.d.cts && napi build --platform --release --esm -o dist --js index.js --dts index.d.ts",
+    "build:ci": "napi build --platform --release --target $TARGET -o dist --js index.cjs --dts index.d.cts && napi build --platform --release --esm --target $TARGET -o dist --js index.js --dts index.d.ts",
+    "dev": "napi build --platform -o dist --js index.cjs --dts index.d.cts && napi build --platform --esm -o dist --js index.js --dts index.d.ts",
+    "test": "vitest run && cargo llvm-cov --html --output-dir coverage && cargo llvm-cov",
+    "test:watch": "vitest",
+    "lint": "biome check . && cargo fmt --check && cargo clippy && tsc --noEmit -p tsconfig.json",
+    "lint:fix": "biome check --write . && cargo fmt && cargo clippy --fix --allow-dirty"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "@biomejs/biome": "catalog:",
+    "@napi-rs/cli": "catalog:",
+    "@types/node": "^25.9.1",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

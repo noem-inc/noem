@@ -1,10 +1,12 @@
 packages:
   - "apps/*"
   - "packages/*"
+  - "packages-rust/*"
 
 catalog:
   "@biomejs/biome": ^2.4.15
   "@vitest/coverage-v8": ^4.1.7
+  "@napi-rs/cli": "^3.6.2"
   tsup: ^8.5.0
   typescript: ^6.0.3
   valibot: ^1.4.1
@@ -18,3 +20,9 @@ minimumReleaseAge: 7200
 
 minimumReleaseAgeExclude:
   - valibot@1.4.1
+  # All internal packages (main + napi platform subpackages) are published
+  # from this repo and not subject to the external-dep cool-off. Without
+  # this, the 5-day window blocks freshly-bumped subpackages from entering
+  # pnpm-lock.yaml and CI's frozen install errors. Glob form added in
+  # pnpm 10.16; we're on 11.3.
+  - "@noem/*"

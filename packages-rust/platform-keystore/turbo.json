@@ -1,0 +1,15 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "extends": ["//"],
+  "tasks": {
+    "test": {
+      "dependsOn": ["build"],
+      "outputs": ["coverage/**"]
+    },
+    "lint": {
+      "cache": true,
+      "inputs": ["$TURBO_DEFAULT$", "biome.json"],
+      "dependsOn": ["build"]
+    }
+  }
+}
