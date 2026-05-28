@@ -70,20 +70,14 @@ importers:
         version: 4.1.7(@types/node@25.9.1)(@vitest/coverage-v8@4.1.7)(vite@8.0.14(@types/node@25.9.1)(esbuild@0.27.7))
     optionalDependencies:
       '@noem/platform-keystore-darwin-arm64':
-        specifier: workspace:*
+        specifier: link:./npm/darwin-arm64
         version: link:npm/darwin-arm64
       '@noem/platform-keystore-win32-arm64-msvc':
-        specifier: workspace:*
+        specifier: link:./npm/win32-arm64-msvc
         version: link:npm/win32-arm64-msvc
       '@noem/platform-keystore-win32-x64-msvc':
-        specifier: workspace:*
+        specifier: link:./npm/win32-x64-msvc
         version: link:npm/win32-x64-msvc
-
-  packages-rust/platform-keystore/npm/darwin-arm64: {}
-
-  packages-rust/platform-keystore/npm/win32-arm64-msvc: {}
-
-  packages-rust/platform-keystore/npm/win32-x64-msvc: {}
 
   packages/encryption:
     dependencies:

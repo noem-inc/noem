@@ -5,16 +5,16 @@
  *
  * For each `packages-rust/<pkg>/` that has an `npm/<triple>/package.json`
  * (created by `napi create-npm-dirs`), rewrite every
- * `npm/<triple>/package.json`'s `version` to the parent's `version`, and
- * ensure a `CHANGELOG.md` stub exists (required by `changesets/action` when
- * the subpackage dirs are part of the pnpm workspace).
+ * `npm/<triple>/package.json`'s `version` to the parent's `version`.
  *
  * Runs as part of `pnpm run version` so the "Version Packages" PR raised by
  * Changesets shows the correct future state for every subpackage, not the
  * stale `0.0.0` placeholder.
  *
- * The parent's `optionalDependencies[<subpackage-name>]` use `workspace:*`
- * and are rewritten to concrete versions by pnpm at publish time, so we don't
+ * The parent's `optionalDependencies[<subpackage-name>]` use the `link:`
+ * protocol so the lockfile resolves locally without registry lookups (the
+ * subpackages aren't published yet at install time). `napi pre-publish`
+ * rewrites them to concrete versions on the publish runner, so we don't
  * touch them here.
  */
 
@@ -105,14 +105,5 @@ for (const entry of readdirSync(packagesRootDir, { withFileTypes: true })) {
       `${JSON.stringify(subPkg, undefined, 2)}\n`,
       'utf-8',
     );
-
-    // changesets/action reads CHANGELOG.md for every workspace package when
-    // building the release PR body. Subpackages live under the workspace
-    // glob `packages-rust/*/npm/*`, so a missing file ENOENTs the job even
-    // though the subpackage is in the changeset `ignore` list.
-    const changelogPath = resolve(npmDir, triple.name, 'CHANGELOG.md');
-    if (!existsSync(changelogPath)) {
-      writeFileSync(changelogPath, '# Changelog\n', 'utf-8');
-    }
   }
 }
