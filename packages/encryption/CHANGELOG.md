@@ -1,5 +1,11 @@
 # @noem/encryption
 
+## 0.0.3
+
+### Patch Changes
+
+- eb38288: Full e2e release test
+
 ## 0.0.2
 
 ### Patch Changes
