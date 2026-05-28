@@ -5,20 +5,17 @@
  *
  * For each `packages-rust/<pkg>/` that has an `npm/<triple>/package.json`
  * (created by `napi create-npm-dirs`), rewrite every
- * `npm/<triple>/package.json`'s `version` to the parent's `version`.
+ * `npm/<triple>/package.json`'s `version` to the parent's `version`, and
+ * ensure a `CHANGELOG.md` stub exists (required by `changesets/action` when
+ * the subpackage dirs are part of the pnpm workspace).
  *
  * Runs as part of `pnpm run version` so the "Version Packages" PR raised by
  * Changesets shows the correct future state for every subpackage, not the
  * stale `0.0.0` placeholder.
  *
- * We intentionally do NOT rewrite the parent's
- * `optionalDependencies[<subpackage-name>]` here. Doing so bumps the specifier
- * to a version that does not yet exist on npm (the matching subpackages are
- * published later, in the `publish` job), which desyncs the lockfile and
- * breaks `pnpm install --frozen-lockfile` in subsequent CI steps. The parent's
- * optionalDependencies are rewritten just-in-time on the publish runner by
- * `napi pre-publish` (see `.github/workflows/release.yml`), so published
- * artifacts still reference the correct subpackage versions.
+ * The parent's `optionalDependencies[<subpackage-name>]` use `workspace:*`
+ * and are rewritten to concrete versions by pnpm at publish time, so we don't
+ * touch them here.
  */
 
 import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -108,5 +105,14 @@ for (const entry of readdirSync(packagesRootDir, { withFileTypes: true })) {
       `${JSON.stringify(subPkg, undefined, 2)}\n`,
       'utf-8',
     );
+
+    // changesets/action reads CHANGELOG.md for every workspace package when
+    // building the release PR body. Subpackages live under the workspace
+    // glob `packages-rust/*/npm/*`, so a missing file ENOENTs the job even
+    // though the subpackage is in the changeset `ignore` list.
+    const changelogPath = resolve(npmDir, triple.name, 'CHANGELOG.md');
+    if (!existsSync(changelogPath)) {
+      writeFileSync(changelogPath, '# Changelog\n', 'utf-8');
+    }
   }
 }
