@@ -73,6 +73,8 @@ jobs:
 
       - run: pnpm test
 
+      - run: pnpm build
+
   # Windows build + tests.
   validate-windows:
     runs-on: windows-latest
@@ -99,6 +101,8 @@ jobs:
       - run: pnpm install --frozen-lockfile
 
       - run: pnpm test
+
+      - run: pnpm build
 
   # PR hygiene: require a changeset.
   changeset:
