@@ -138,6 +138,15 @@ jobs:
     permissions:
       contents: write
       id-token: write
+    # `napi pre-publish` rewrites parent `optionalDependencies` from
+    # `link:./npm/<triple>` to concrete `<version>` so the published main
+    # package pins its native sub-pkgs. That mutation makes pnpm's
+    # auto-recheck flag the lockfile as out-of-date on every subsequent
+    # `pnpm exec` (Build JS-only, Publish via Changesets). We've already
+    # done the strict `pnpm install --frozen-lockfile` below; suppress the
+    # recheck for the rest of the job.
+    env:
+      npm_config_verify_deps_before_run: 'false'
     steps:
       - uses: actions/checkout@v6
 
