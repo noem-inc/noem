@@ -1,6 +1,6 @@
 {
   "name": "@noem/encryption",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "Isomorphic field-level encryption helper using WebCrypto AES-256-GCM with authenticated envelopes and key rotation.",
   "keywords": [
     "encryption",

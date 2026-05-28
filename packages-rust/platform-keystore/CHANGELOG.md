@@ -1,5 +1,11 @@
 # @noem/platform-keystore
 
+## 0.0.7
+
+### Patch Changes
+
+- 11ba22f: Trigger redeployment test
+
 ## 0.0.6
 
 ### Patch Changes

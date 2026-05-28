@@ -1,5 +1,11 @@
 # @noem/encryption
 
+## 0.0.4
+
+### Patch Changes
+
+- 11ba22f: Trigger redeployment test
+
 ## 0.0.3
 
 ### Patch Changes
