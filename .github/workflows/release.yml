@@ -200,7 +200,13 @@ jobs:
             echo "::group::Publish native subpackages for $pkg"
             pushd "packages-rust/$pkg" > /dev/null
             pnpm exec napi artifacts --output-dir artifacts
-            pnpm exec napi pre-publish
+            # `--no-gh-release` because GitHub releases are handled by
+            # changesets/action elsewhere. Default behaviour scans HEAD's
+            # commit message for the package name to attach assets to a
+            # release, which fails for recovery commits ("Recover stranded
+            # napi sub-packages in release matrix" etc.) that don't name a
+            # specific package.
+            pnpm exec napi pre-publish --no-gh-release
             popd > /dev/null
             echo "::endgroup::"
           done
