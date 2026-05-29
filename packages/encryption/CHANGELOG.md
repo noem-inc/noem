@@ -1,5 +1,11 @@
 # @noem/encryption
 
+## 0.0.6
+
+### Patch Changes
+
+- ed20705: Fix missing dist and license files
+
 ## 0.0.5
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @noem/luhn
 
+## 0.0.9
+
+### Patch Changes
+
+- ed20705: Fix missing dist and license files
+
 ## 0.0.8
 
 ### Patch Changes
