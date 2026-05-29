@@ -92,7 +92,7 @@ pnpm changeset
 Pick the affected package(s), choose the bump (`patch` / `minor` / `major`), and write
 a summary. This creates a markdown file under `.changeset/`. Commit it with your change.
 
-> The CI workflow (`.github/workflows/ci.yml`) gates PRs with
+> The PR workflow (`.github/workflows/pr.yml`) gates PRs with
 > `changeset status --since=origin/<base>` and fails when no changeset is present, so a
 > change can't merge unversioned. The gate is skipped for the auto-generated
 > "Version Packages" PR (which has no changesets by design).
