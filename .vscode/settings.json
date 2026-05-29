@@ -17,6 +17,8 @@
     "editor.defaultFormatter": "rust-lang.rust-analyzer"
   },
   "files.associations": {
-    "CODEOWNERS": "plaintext"
+    "CODEOWNERS": "plaintext",
+    "LICENSE-APACHE": "plaintext",
+    "LICENSE-MIT": "plaintext"
   }
 }

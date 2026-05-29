@@ -181,6 +181,14 @@ jobs:
         run: |
           echo "verifyDepsBeforeRun: false" >> pnpm-workspace.yaml
 
+      # Copy root LICENSE / LICENSE-MIT / LICENSE-APACHE into every publishable
+      # package directory (including napi per-platform subpackages). Required
+      # for Apache-2.0 §4(a) — every redistributed tarball must ship the
+      # License text. The copies are .gitignored; root files are the single
+      # source of truth.
+      - name: Sync licenses to publishable packages
+        run: node scripts/sync-licenses.mts
+
       # Steps below gated on nativeChanged — when only JS siblings were
       # bumped, no .node binaries were built and napi pre-publish would 403
       # on duplicate native subpackage versions.

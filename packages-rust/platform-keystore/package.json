@@ -75,7 +75,7 @@
     "lint": "biome check . && cargo fmt --check && cargo clippy && tsc --noEmit -p tsconfig.json",
     "lint:fix": "biome check --write . && cargo fmt && cargo clippy --fix --allow-dirty"
   },
-  "license": "MIT",
+  "license": "MIT OR Apache-2.0",
   "devDependencies": {
     "@biomejs/biome": "catalog:",
     "@napi-rs/cli": "catalog:",
