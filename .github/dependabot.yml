@@ -17,6 +17,14 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    # Mirrors pnpm-workspace.yaml's `minimumReleaseAge: 7200` (5 days).
+    # Without this, Dependabot tries to bump to a fresh release and pnpm
+    # install fails because the version is younger than the cool-off
+    # window — surfaced as `unknown_error` in the Dependabot logs with
+    # no actionable detail.
+    # IMPORTANT: WHEN UPDATING UPDATE pnpm-workspace.yml AS WELL
+    cooldown:
+      default-days: 5
     groups:
       npm:
         patterns: ["*"]
@@ -30,6 +38,12 @@ updates:
     directory: /packages-rust/platform-keystore
     schedule:
       interval: weekly
+    # Cargo doesn't enforce a minimum release age, but matching the npm
+    # cool-off keeps the supply-chain posture consistent and dodges
+    # yanked-on-day-of-release scenarios.
+    # IMPORTANT: WHEN UPDATING UPDATE pnpm-workspace.yml AS WELL
+    cooldown:
+      default-days: 5
     groups:
       cargo:
         patterns: ["*"]

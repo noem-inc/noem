@@ -23,6 +23,7 @@ allowBuilds:
   esbuild: true
 
 # Supply-chain hardening: Do not install deps younger then 5 days (7200 minutes).
+# IMPORTANT: WHEN UPDATING UPDATE dependabot.yml AS WELL
 minimumReleaseAge: 7200
 
 minimumReleaseAgeExclude:
