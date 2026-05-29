@@ -19,16 +19,12 @@ import {
 const platform = process.platform;
 const isMac = platform === 'darwin';
 const isWindows = platform === 'win32';
+const isUnsupported = !isMac && !isWindows;
 
 console.info(`Running tests for platform: ${platform}`);
 
 describe('#getProviderStatus', () => {
-  test('report mac backend if running on mac', async () => {
-    if (!isMac) {
-      expect(true).toBe(true);
-      return;
-    }
-
+  test.runIf(isMac)('reports macos_enclave backend on mac', async () => {
     const status = await getProviderStatus();
     expect(status.available).toBe(true);
     expect(status.backend).toBe('macos_enclave');
@@ -37,47 +33,34 @@ describe('#getProviderStatus', () => {
     expect(getProviderStatusSync().backend).toBe('macos_enclave');
   });
 
-  test('report windows backend if running on windows', async () => {
-    if (!isWindows) {
-      expect(true).toBe(true);
-      return;
-    }
+  test.runIf(isWindows)(
+    'reports ncrypt_tpm backend on windows (or ProviderUnavailable without TPM)',
+    async () => {
+      // CI-hosted Windows runners have no hardware TPM, so the Platform Crypto
+      // Provider fails to load and getProviderStatus() rejects with
+      // ProviderUnavailable. On real hardware with a TPM 2.0, it reports the
+      // ncrypt_tpm backend. Accept either outcome.
+      try {
+        const status = await getProviderStatus();
+        expect(status.available).toBe(true);
+        expect(status.backend).toBe('ncrypt_tpm');
 
-    // CI-hosted Windows runners have no hardware TPM, so the Platform Crypto
-    // Provider fails to load and getProviderStatus() rejects with
-    // ProviderUnavailable. On real hardware with a TPM 2.0, it reports the
-    // ncrypt_tpm backend. Accept either outcome.
-    try {
-      const status = await getProviderStatus();
-      expect(status.available).toBe(true);
-      expect(status.backend).toBe('ncrypt_tpm');
+        console.info('TPM Available tests');
+      } catch (err) {
+        expect((err as Error).message).toMatch(/provider not available/i);
+        console.info('TPM Not Available tests');
+      }
+    },
+  );
 
-      console.info('TPM Available tests');
-    } catch (err) {
-      expect((err as Error).message).toMatch(/provider not available/i);
-      console.info('TPM Not Available tests');
-    }
-    return;
-  });
-
-  test('throws error on unsuported platform', async () => {
-    if (isWindows || isMac) {
-      expect(true).toBe(true);
-      return;
-    }
-
+  test.runIf(isUnsupported)('throws on unsupported platform', async () => {
     console.info('TPM Error tests');
     await expect(getProviderStatus()).rejects.toThrow();
   });
 });
 
 describe('#getProviderStatusSync', () => {
-  test('report mac backend if running on mac sync', () => {
-    if (!isMac) {
-      expect(true).toBe(true);
-      return;
-    }
-
+  test.runIf(isMac)('reports macos_enclave backend on mac sync', () => {
     const status = getProviderStatusSync();
     expect(status.available).toBe(true);
     expect(status.backend).toBe('macos_enclave');
@@ -86,42 +69,39 @@ describe('#getProviderStatusSync', () => {
     expect(getProviderStatusSync().backend).toBe('macos_enclave');
   });
 
-  test('report windows backend if running on windows sync', () => {
-    if (!isWindows) {
-      expect(true).toBe(true);
-      return;
-    }
+  test.runIf(isWindows)(
+    'reports ncrypt_tpm backend on windows sync (or ProviderUnavailable without TPM)',
+    () => {
+      // CI-hosted Windows runners have no hardware TPM, so the Platform Crypto
+      // Provider fails to load and getProviderStatus() rejects with
+      // ProviderUnavailable. On real hardware with a TPM 2.0, it reports the
+      // ncrypt_tpm backend. Accept either outcome.
+      try {
+        const status = getProviderStatusSync();
+        expect(status.available).toBe(true);
+        expect(status.backend).toBe('ncrypt_tpm');
 
-    // CI-hosted Windows runners have no hardware TPM, so the Platform Crypto
-    // Provider fails to load and getProviderStatus() rejects with
-    // ProviderUnavailable. On real hardware with a TPM 2.0, it reports the
-    // ncrypt_tpm backend. Accept either outcome.
-    try {
-      const status = getProviderStatusSync();
-      expect(status.available).toBe(true);
-      expect(status.backend).toBe('ncrypt_tpm');
+        console.info('TPM Available tests');
+      } catch (err) {
+        expect((err as Error).message).toMatch(/provider not available/i);
+        console.info('TPM Not Available tests');
+      }
+    },
+  );
 
-      console.info('TPM Available tests');
-    } catch (err) {
-      expect((err as Error).message).toMatch(/provider not available/i);
-      console.info('TPM Not Available tests');
-    }
-    return;
-  });
-
-  test('throws error on unsuported platform sync', () => {
-    if (isWindows || isMac) {
-      expect(true).toBe(true);
-      return;
-    }
-
+  test.runIf(isUnsupported)('throws on unsupported platform sync', () => {
     console.info('TPM Error tests');
     expect(() => getProviderStatusSync()).toThrow();
   });
 });
 
-test('sync seal/unseal roundtrip stores and reads back a secret', () => {
-  if (isMac) {
+// 30s ceiling: on real TPM hardware createKey triggers RSA-2048 keygen
+// (seconds) plus repeated provider opens — well past vitest's 5s default.
+const ROUNDTRIP_TIMEOUT_MS = 30_000;
+
+test.runIf(isMac)(
+  'sync seal/unseal roundtrip on macos enclave',
+  () => {
     // Real Secure Enclave roundtrip — only runs when the host binary has the
     // application-identifier entitlement required to persist SE keys. Node
     // launched via `pnpm test` is typically unsigned in that sense, so
@@ -164,10 +144,13 @@ test('sync seal/unseal roundtrip stores and reads back a secret', () => {
         'Secure Enclave Not Available (unsigned host) — skipping roundtrip',
       );
     }
-    return;
-  }
+  },
+  ROUNDTRIP_TIMEOUT_MS,
+);
 
-  if (isWindows) {
+test.runIf(isWindows)(
+  'sync seal/unseal roundtrip on windows tpm',
+  () => {
     // Real roundtrip only runs on hardware with a TPM 2.0. CI-hosted Windows
     // runners have no TPM, so the provider rejects with ProviderUnavailable.
     try {
@@ -211,17 +194,22 @@ test('sync seal/unseal roundtrip stores and reads back a secret', () => {
       expect((err as Error).message).toMatch(/provider not available/i);
       console.info('TPM Not Available roundtrip');
     }
-    return;
-  }
+  },
+  ROUNDTRIP_TIMEOUT_MS,
+);
 
-  console.info('TPM Error roundtrip');
-  expect(() => createKeySync(`noem-test-${randomUUID()}`)).toThrow();
-  // 30s ceiling: on real TPM hardware createKey triggers RSA-2048 keygen
-  // (seconds) plus repeated provider opens — well past vitest's 5s default.
-}, 30_000);
+test.runIf(isUnsupported)(
+  'sync createKey throws on unsupported platform',
+  () => {
+    console.info('TPM Error roundtrip');
+    expect(() => createKeySync(`noem-test-${randomUUID()}`)).toThrow();
+  },
+  ROUNDTRIP_TIMEOUT_MS,
+);
 
-test('async seal/unseal roundtrip stores and reads back a secret', async () => {
-  if (isMac) {
+test.runIf(isMac)(
+  'async seal/unseal roundtrip on macos enclave',
+  async () => {
     // Real Secure Enclave roundtrip — only runs when the host binary has the
     // application-identifier entitlement required to persist SE keys. Node
     // launched via `pnpm test` is typically unsigned in that sense, so
@@ -264,10 +252,13 @@ test('async seal/unseal roundtrip stores and reads back a secret', async () => {
         'Secure Enclave Not Available (unsigned host) — skipping roundtrip',
       );
     }
-    return;
-  }
+  },
+  ROUNDTRIP_TIMEOUT_MS,
+);
 
-  if (isWindows) {
+test.runIf(isWindows)(
+  'async seal/unseal roundtrip on windows tpm',
+  async () => {
     // Real roundtrip only runs on hardware with a TPM 2.0. CI-hosted Windows
     // runners have no TPM, so the provider rejects with ProviderUnavailable.
     try {
@@ -311,11 +302,15 @@ test('async seal/unseal roundtrip stores and reads back a secret', async () => {
       expect((err as Error).message).toMatch(/provider not available/i);
       console.info('TPM Not Available roundtrip');
     }
-    return;
-  }
+  },
+  ROUNDTRIP_TIMEOUT_MS,
+);
 
-  console.info('TPM Error roundtrip');
-  await expect(createKey(`noem-test-${randomUUID()}`)).rejects.toThrow();
-  // 30s ceiling: on real TPM hardware createKey triggers RSA-2048 keygen
-  // (seconds) plus repeated provider opens — well past vitest's 5s default.
-}, 30_000);
+test.runIf(isUnsupported)(
+  'async createKey rejects on unsupported platform',
+  async () => {
+    console.info('TPM Error roundtrip');
+    await expect(createKey(`noem-test-${randomUUID()}`)).rejects.toThrow();
+  },
+  ROUNDTRIP_TIMEOUT_MS,
+);

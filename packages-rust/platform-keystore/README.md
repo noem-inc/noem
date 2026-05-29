@@ -11,10 +11,13 @@
 > AI-generated. Review carefully before relying on it, especially the
 > security-sensitive cryptographic paths.
 
-Hardware-backed key storage for Node, exposed as a NAPI-RS native addon. Provision
-non-exportable hardware keys and seal/unseal secrets (e.g. a database password) against
-them — the private key never leaves the secure hardware (TPM on Windows, Secure Enclave on
-Apple Silicon).
+Hardware-backed key storage for Node and Electron, exposed as a NAPI-RS native addon.
+Provision non-exportable hardware keys and seal/unseal secrets (e.g. a database password)
+against them — the private key never leaves the secure hardware (TPM on Windows, Secure
+Enclave on Apple Silicon).
+
+Built on Node-API (stable ABI), so the same prebuilt binary loads in Node and Electron
+main process without rebuilds — match Electron's Node-API version, not its Node version.
 
 ## Platform support
 
@@ -43,7 +46,9 @@ Hosts without an SE get `ProviderUnavailable`.
 pnpm add @noem/platform-keystore
 ```
 
-Requires Node >= 18.
+Requires Node >= 18, or Electron >= 22 (Node-API 8+). Call from the **main process** —
+the renderer has no native module loader unless `nodeIntegration` is on (don't), so
+expose `seal`/`unseal` via `contextBridge` + IPC.
 
 The native binary ships in a per-platform subpackage
 (`@noem/platform-keystore-win32-x64-msvc`, `…-win32-arm64-msvc`,

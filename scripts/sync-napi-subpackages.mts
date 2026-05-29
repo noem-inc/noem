@@ -49,6 +49,31 @@ type PackageJson = {
   };
 };
 
+const SYNCED_FIELDS = [
+  'version',
+  'description',
+  'keywords',
+  'author',
+  'homepage',
+  'license',
+  'engines',
+  'repository',
+  'bugs',
+  'publishConfig',
+] as const satisfies ReadonlyArray<keyof PackageJson>;
+
+// Direct `dst[key] = src[key]` where `key` is a union of literals collapses
+// the LHS to the intersection of every field's value type (write position),
+// which clashes with the union from the RHS. A generic preserves the link
+// between both sides — TS sees `dst[K]` and `src[K]` as the same slot.
+function copyField<K extends keyof PackageJson>(
+  dst: PackageJson,
+  src: PackageJson,
+  key: K,
+): void {
+  dst[key] = src[key];
+}
+
 const repoRootDir = resolve(import.meta.dirname, '..');
 const packagesRootDir = resolve(repoRootDir, 'packages-rust');
 
@@ -84,19 +109,14 @@ for (const entry of readdirSync(packagesRootDir, { withFileTypes: true })) {
       continue;
     }
 
-    const subPkg = JSON.parse(readFileSync(subPkgPath, 'utf-8')) as PackageJson;
+    const subPkg: PackageJson = JSON.parse(
+      readFileSync(subPkgPath, 'utf-8'),
+    ) as PackageJson;
 
     // Sync the correct properties
-    subPkg.version = parentPkg.version;
-    subPkg.description = parentPkg.description;
-    subPkg.keywords = parentPkg.keywords;
-    subPkg.author = parentPkg.author;
-    subPkg.homepage = parentPkg.homepage;
-    subPkg.license = parentPkg.license;
-    subPkg.engines = parentPkg.engines;
-    subPkg.repository = parentPkg.repository;
-    subPkg.bugs = parentPkg.bugs;
-    subPkg.publishConfig = parentPkg.publishConfig;
+    for (const property of SYNCED_FIELDS) {
+      copyField(subPkg, parentPkg, property);
+    }
 
     // Preserve JSON style: 2-space indent + trailing newline. Matches the
     // output that `napi create-npm-dirs` produces.
