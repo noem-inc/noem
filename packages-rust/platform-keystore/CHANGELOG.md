@@ -1,5 +1,11 @@
 # @noem/platform-keystore
 
+## 0.0.8
+
+### Patch Changes
+
+- be57556: Update the License
+
 ## 0.0.7
 
 ### Patch Changes
