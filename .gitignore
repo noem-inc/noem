@@ -45,3 +45,8 @@ target
 *.rs.bk
 Cargo.lock.ms
 *.node
+
+# Ignore all licenses except root
+# these are synced during publish time.
+LICENSE*
+!/LICENSE*
