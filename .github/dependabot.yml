@@ -9,3 +9,28 @@ updates:
     groups:
       actions:
         patterns: ["*"]
+
+  # npm / pnpm workspace. Dependabot scans every package.json under the
+  # workspace and bumps catalog: entries in pnpm-workspace.yaml directly.
+  # One grouped PR per week keeps reviewer load bounded.
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      npm:
+        patterns: ["*"]
+        # Major bumps split into their own PRs so breaking changes stay
+        # reviewable in isolation.
+        update-types: ["minor", "patch"]
+
+  # Rust crates for the napi addon. Cargo.toml + Cargo.lock under each
+  # packages-rust/<crate>/ — currently just platform-keystore.
+  - package-ecosystem: cargo
+    directory: /packages-rust/platform-keystore
+    schedule:
+      interval: weekly
+    groups:
+      cargo:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
