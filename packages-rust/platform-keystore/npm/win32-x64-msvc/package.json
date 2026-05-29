@@ -27,7 +27,7 @@
     "url": "https://www.noem.io/"
   },
   "homepage": "https://github.com/noem-inc/noem/tree/main/packages-rust/platform-keystore#readme",
-  "license": "MIT",
+  "license": "MIT OR Apache-2.0",
   "engines": {
     "node": ">=18"
   },

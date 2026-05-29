@@ -3,7 +3,7 @@ name = "noem-platform-keystore"
 version = "0.0.7"
 edition = "2024"
 description = "TPM-backed hardware key storage for Node — provision non-exportable keys and seal/unseal secrets via the Windows NCrypt Platform KSP"
-license = "MIT"
+license = "MIT OR Apache-2.0"
 keywords = ["tpm", "keystore", "ncrypt", "keychain", "secure-enclave"]
 categories = ["cryptography", "os::windows-apis", "api-bindings"]
 
