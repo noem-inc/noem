@@ -1,5 +1,9 @@
 # noem
 
+[![Release](https://github.com/noem-inc/noem/actions/workflows/release.yml/badge.svg?branch=main)](https://github.com/noem-inc/noem/actions/workflows/release.yml)
+[![Security: Trusted Publisher](https://img.shields.io/badge/security-trusted--publisher-green?logo=github)](https://www.npmjs.com/org/noem)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+
 Monorepo of TypeScript packages published to npm under the `@noem` scope.
 
 Built with [pnpm](https://pnpm.io/) workspaces, [Turborepo](https://turborepo.dev/),
@@ -8,11 +12,11 @@ Built with [pnpm](https://pnpm.io/) workspaces, [Turborepo](https://turborepo.de
 
 ## Packages
 
-| Package                                                 | Description                                                                  |
-| ------------------------------------------------------- | ---------------------------------------------------------------------------- |
-| [`@noem/encryption`](packages/encryption)               | Isomorphic field-level encryption (WebCrypto AES-256-GCM) with key rotation. |
-| [`@noem/luhn`](packages/luhn)                           | Luhn algorithm validation for card / SIN numbers.                            |
-| [`@noem/platform-keystore`](packages-rust/platform-keystore) | TPM-backed hardware key storage — seal/unseal via the Windows NCrypt KSP.    |
+| Package                                                                | Description                                                                  | Version                                                                                                                           | Build                                                                                                                                                              |
+| ---------------------------------------------------------------------- | ---------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| [`@noem/encryption`](packages/encryption/README.md)                    | Isomorphic field-level encryption (WebCrypto AES-256-GCM) with key rotation. | [![npm version](https://img.shields.io/npm/v/@noem/encryption.svg)](https://www.npmjs.com/package/@noem/encryption)               | [![Release](https://github.com/noem-inc/noem/actions/workflows/release.yml/badge.svg?branch=main)](https://github.com/noem-inc/noem/actions/workflows/release.yml) |
+| [`@noem/luhn`](packages/luhn/README.md)                                | Luhn algorithm validation for card / SIN numbers.                            | [![npm version](https://img.shields.io/npm/v/@noem/luhn.svg)](https://www.npmjs.com/package/@noem/luhn)                           | [![Release](https://github.com/noem-inc/noem/actions/workflows/release.yml/badge.svg?branch=main)](https://github.com/noem-inc/noem/actions/workflows/release.yml) |
+| [`@noem/platform-keystore`](packages-rust/platform-keystore/README.md) | TPM-backed hardware key storage — seal/unseal via the Windows NCrypt KSP.    | [![npm version](https://img.shields.io/npm/v/@noem/platform-keystore.svg)](https://www.npmjs.com/package/@noem/platform-keystore) | [![Release](https://github.com/noem-inc/noem/actions/workflows/release.yml/badge.svg?branch=main)](https://github.com/noem-inc/noem/actions/workflows/release.yml) |
 
 New packages live under `packages/*`; (see `pnpm-workspace.yaml`).
 

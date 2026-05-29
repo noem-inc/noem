@@ -1,0 +1,11 @@
+version: 2
+updates:
+  # Keep GitHub Actions SHAs (pinned per OpenSSF Scorecard Pinned-Dependencies)
+  # fresh. Grouped into a single weekly PR to avoid per-action churn.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]
