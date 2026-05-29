@@ -9,7 +9,7 @@ use zeroize::Zeroize;
 
 #[derive(Debug, Error)]
 pub enum KeyStoreError {
-    #[error("TPM/Keychain provider not available on this platform")]
+    #[error("TPM/Secure Enclave provider not available on this platform")]
     ProviderUnavailable,
 
     #[error("Key '{0}' not found")]
@@ -62,14 +62,14 @@ pub struct KeyInfo {
 // ---------------------------------------------------------------------------
 
 /// Key storage backend identifier. Serializes to the snake_case string on the
-/// JS side: "ncrypt_tpm" | "macos_keychain". Absence of a backend (e.g. an
+/// JS side: "ncrypt_tpm" | "macos_enclave". Absence of a backend (e.g. an
 /// unavailable provider) is modeled with `Option<Backend>`, not a variant.
 #[napi(string_enum = "snake_case")]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Backend {
     NcryptTpm,
-    MacosKeychain,
+    MacosEnclave,
 }
 
 #[napi(object)]
@@ -154,7 +154,7 @@ mod tests {
     fn error_display_messages() {
         assert_eq!(
             KeyStoreError::ProviderUnavailable.to_string(),
-            "TPM/Keychain provider not available on this platform"
+            "TPM/Secure Enclave provider not available on this platform"
         );
         assert_eq!(
             KeyStoreError::KeyNotFound("k".into()).to_string(),
@@ -195,8 +195,8 @@ mod tests {
             "\"ncrypt_tpm\""
         );
         assert_eq!(
-            serde_json::to_string(&Backend::MacosKeychain).unwrap(),
-            "\"macos_keychain\""
+            serde_json::to_string(&Backend::MacosEnclave).unwrap(),
+            "\"macos_enclave\""
         );
         let b: Backend = serde_json::from_str("\"ncrypt_tpm\"").unwrap();
         assert_eq!(b, Backend::NcryptTpm);

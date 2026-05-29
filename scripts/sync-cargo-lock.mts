@@ -42,8 +42,11 @@ for (const entry of readdirSync(packagesRootDir, { withFileTypes: true })) {
   const crateName = name.replace('@', '').replace(/\//g, '-');
 
   const escapedName = crateName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  // `\r?\n` not `\n` — Cargo.lock checked out on Windows without a
+  // `.gitattributes` LF override comes through with CRLF endings, and a bare
+  // `\n` pattern silently matches zero entries.
   const pattern = new RegExp(
-    `(\\[\\[package\\]\\]\\nname = "${escapedName}"\\nversion = ")([^"]+)(")`,
+    `(\\[\\[package\\]\\]\\r?\\nname = "${escapedName}"\\r?\\nversion = ")([^"]+)(")`,
     'g',
   );
 

@@ -8,7 +8,7 @@
   "files": [
     "platform-keystore.win32-x64-msvc.node"
   ],
-  "description": "TPM-backed hardware key storage for Node — provision non-exportable keys and seal/unseal secrets via the Windows NCrypt Platform KSP",
+  "description": "Hardware-backed key storage for Node and Electron — provision non-exportable keys and seal/unseal secrets via TPM 2.0 (Windows NCrypt) or Apple Secure Enclave",
   "keywords": [
     "tpm",
     "keystore",
@@ -20,7 +20,9 @@
     "nist",
     "napi",
     "native",
-    "hardware-security"
+    "hardware-security",
+    "electron",
+    "node-api"
   ],
   "author": {
     "name": "Noem Inc.",

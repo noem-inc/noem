@@ -11,25 +11,34 @@
 > AI-generated. Review carefully before relying on it, especially the
 > security-sensitive cryptographic paths.
 
-TPM-backed key storage for Node, exposed as a NAPI-RS native addon. Provision
-non-exportable hardware keys and seal/unseal secrets (e.g. a database password) against
-them — the private key never leaves the secure hardware.
+Hardware-backed key storage for Node and Electron, exposed as a NAPI-RS native addon.
+Provision non-exportable hardware keys and seal/unseal secrets (e.g. a database password)
+against them — the private key never leaves the secure hardware (TPM on Windows, Secure
+Enclave on Apple Silicon).
+
+Built on Node-API (stable ABI), so the same prebuilt binary loads in Node and Electron
+main process without rebuilds — match Electron's Node-API version, not its Node version.
 
 ## Platform support
 
-| Platform | Backend                         | Status                            |
-| -------- | ------------------------------- | --------------------------------- |
-| Windows  | TPM via NCrypt Platform KSP     | ✅ Implemented (production)       |
-| macOS    | Keychain / Secure Enclave (dev) | 🚧 **Not implemented yet** (stub) |
-| Other    | —                               | ❌ Unsupported                    |
+| Platform         | Backend                         | Status                                |
+| ---------------- | ------------------------------- | ------------------------------------- |
+| Windows          | TPM 2.0 via NCrypt Platform KSP | ✅ Implemented (RSA-2048 OAEP-SHA256) |
+| macOS (Apple Si) | Secure Enclave (EC-P256)        | ✅ Implemented (EC-P256 ECIES)        |
+| Other            | —                               | ❌ Unsupported                        |
 
-> **macOS is not implemented yet.** The macOS backend (`DevKeyStorage`) is a development
-> stub: `seal`/`unseal` throw "not yet implemented", and the remaining operations are
-> placeholders. It exists to validate the cross-platform plumbing only and must **not** be
-> used in production.
-
-Requires Windows with a TPM 2.0. On hardware without a TPM (e.g. CI runners),
+Windows requires a real TPM 2.0; on hardware without one (e.g. CI runners),
 `getProviderStatus()` throws `ProviderUnavailable`.
+
+macOS requires Apple Silicon (or a T2-equipped Intel Mac) for the Secure Enclave.
+Hosts without an SE get `ProviderUnavailable`.
+
+> **macOS entitlement requirement.** Persisting a Secure Enclave key into the
+> Keychain requires the host binary to be code-signed with an
+> `application-identifier` entitlement. The shipped, code-signed `.app`
+> satisfies this. Unsigned hosts (e.g. raw `cargo test` or `node` launched
+> directly via `pnpm test`) hit `errSecMissingEntitlement` (-34018) on
+> `createKey`; the test suites detect this and skip the provisioning paths.
 
 ## Installation
 
@@ -37,7 +46,9 @@ Requires Windows with a TPM 2.0. On hardware without a TPM (e.g. CI runners),
 pnpm add @noem/platform-keystore
 ```
 
-Requires Node >= 18.
+Requires Node >= 18, or Electron >= 22 (Node-API 8+). Call from the **main process** —
+the renderer has no native module loader unless `nodeIntegration` is on (don't), so
+expose `seal`/`unseal` via `contextBridge` + IPC.
 
 The native binary ships in a per-platform subpackage
 (`@noem/platform-keystore-win32-x64-msvc`, `…-win32-arm64-msvc`,
@@ -124,7 +135,7 @@ Sync variants: `getProviderStatusSync`, `createKeySync`, `openKeySync`,
 ### Types
 
 ```ts
-type Backend = "ncrypt_tpm" | "macos_keychain";
+type Backend = "ncrypt_tpm" | "macos_enclave";
 
 interface ProviderStatus {
   available: boolean;
@@ -138,7 +149,7 @@ interface KeyInfo {
   name: string;
   backend: Backend;
   exportable: boolean; // always false in production
-  algorithm: string; // e.g. "RSA-2048"
+  algorithm: string; // "RSA-2048" on Windows, "EC-P256-SE" on macOS
 }
 
 interface SealedBlob {
@@ -150,10 +161,14 @@ interface SealedBlob {
 
 ## Security notes
 
-- Keys are **non-exportable** — the TPM rejects provisioning exportable keys.
+- Keys are **non-exportable** — the TPM and Secure Enclave both reject provisioning
+  exportable keys; the public key never leaves the hardware in a usable form.
 - The Rust side zeroes its plaintext copies on drop (`zeroize`). JS `Buffer`s **cannot** be
   reliably zeroed due to V8 GC — minimize their lifetime and avoid copying.
 - `deleteKey` is destructive and irreversible.
+- Sealed ciphertext is the caller's responsibility to store wherever (disk, settings DB,
+  etc.). The backend only persists the hardware-bound key; it does not touch ciphertext
+  at rest.
 
 ### Why `Buffer` and not `string` for plaintext?
 
@@ -202,9 +217,11 @@ triple only).
 The logic lives in the native addon, so the JS side has two roles:
 
 - `test/smoke.test.ts` — **integration smoke test** of the built addon.
-  The real TPM `seal`/`unseal` roundtrip only runs on Windows + TPM hardware;
-  on macOS it asserts the stub throws, on CI Windows runners without a TPM it
-  asserts `ProviderUnavailable`.
+  The Windows TPM roundtrip only runs on real TPM 2.0 hardware; the macOS
+  Secure Enclave roundtrip only runs when the host has the
+  `application-identifier` entitlement (the shipped signed `.app`). Both
+  arms detect the unavailable case and assert the documented error path
+  instead.
 - `#[cfg(test)]` **Rust unit tests** in `src/` exercise the per-platform logic
   directly. `build.rs` adds link-args so the test binary links despite the napi
   glue referencing symbols Node provides at runtime.
@@ -212,6 +229,7 @@ The logic lives in the native addon, so the JS side has two roles:
 `pnpm test` runs `cargo llvm-cov` after vitest: it builds the instrumented
 tests, writes an HTML report to `coverage/html/index.html`, and prints a text
 summary to stdout. JS-side coverage is disabled in `vitest.config.ts` — the
-addon's behavior is covered by the Rust tests. On macOS this covers `types.rs`,
-the `DevKeyStorage` stub, and the cross-platform helpers; the NCrypt paths
-(`src/windows/`) are covered only on Windows with a TPM.
+addon's behavior is covered by the Rust tests. The NCrypt paths
+(`src/windows/`) are covered only on Windows with a TPM; the Secure Enclave
+provisioning paths (`src/macos/enclave.rs`) are covered only when the
+running test binary has the entitlement to persist SE keys.
