@@ -1,5 +1,11 @@
 # @noem/encryption
 
+## 0.0.5
+
+### Patch Changes
+
+- be57556: Update the License
+
 ## 0.0.4
 
 ### Patch Changes
