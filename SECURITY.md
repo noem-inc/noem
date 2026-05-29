@@ -39,6 +39,10 @@ You can also reach the form from the repository UI:
 2. Select **Advisories** in the left sidebar.
 3. Click the **Report a vulnerability** button.
 
+### Backup contact
+
+If GitHub Security Advisories is unavailable, email **security@noem.io**. This mailbox is monitored by the maintainers and reports are treated as confidential.
+
 ### What to include
 
 To help us triage quickly, please include:
