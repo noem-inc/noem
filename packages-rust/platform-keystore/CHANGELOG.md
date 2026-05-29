@@ -1,5 +1,11 @@
 # @noem/platform-keystore
 
+## 0.0.9
+
+### Patch Changes
+
+- b70a6f8: Implement IOS Enclave Keystore
+
 ## 0.0.8
 
 ### Patch Changes

@@ -1,8 +1,8 @@
 [package]
 name = "noem-platform-keystore"
-version = "0.0.8"
+version = "0.0.9"
 edition = "2024"
-description = "TPM-backed hardware key storage for Node — provision non-exportable keys and seal/unseal secrets via the Windows NCrypt Platform KSP"
+description = "Hardware-backed key storage for Node and Electron — provision non-exportable keys and seal/unseal secrets via TPM 2.0 (Windows NCrypt) or Apple Secure Enclave"
 license = "MIT OR Apache-2.0"
 keywords = ["tpm", "keystore", "ncrypt", "keychain", "secure-enclave"]
 categories = ["cryptography", "os::windows-apis", "api-bindings"]
