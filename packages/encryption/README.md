@@ -4,7 +4,7 @@
 [![npm version](https://img.shields.io/npm/v/@noem/encryption.svg)](https://www.npmjs.com/package/@noem/encryption)
 [![Security: Trusted Publisher](https://img.shields.io/badge/security-trusted--publisher-green?logo=github)](https://www.npmjs.com/package/@noem/encryption)
 [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/noem-inc/noem/badge)](https://securityscorecards.dev/viewer/?uri=github.com/noem-inc/noem)
-[![License: MIT OR Apache-2.0](https://img.shields.io/badge/License-MIT%20OR%20Apache--2.0-blue.svg)](https://github.com/noem-inc/noem#licence-mit)
+[![License: MIT OR Apache-2.0](https://img.shields.io/badge/License-MIT%20OR%20Apache--2.0-blue.svg)](https://github.com/noem-inc/noem#MIT-2-ov-file)
 
 Field-level encryption helper built on WebCrypto AES-256-GCM. Produces a
 self-describing envelope (`kid` + ciphertext + IV) that is safe to store in a
