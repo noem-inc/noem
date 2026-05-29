@@ -34,7 +34,7 @@ jobs:
         uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
         with:
           # Fails the PR if critical or high vulnerabilities are introduced
-          severity-threshold: high
+          fail-on-severity: high
 
   # 2. OpenSSF Scorecard Job
   scorecard-analysis:
