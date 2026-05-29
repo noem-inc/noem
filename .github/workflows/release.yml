@@ -121,17 +121,19 @@ jobs:
 
       # One matrix entry per package is flagged jsLoader; that job uploads the
       # shared JS wrapper / .d.ts that napi build emits (identical across all
-      # targets for a given package).
+      # targets for a given package). Upload the whole dist/ EXCEPT the *.node
+      # binaries: the binaries belong only in the per-platform subpackages
+      # (handled by the bindings-* artifacts above), never in the main JS-only
+      # package. Globbing the dir rather than naming files keeps this correct
+      # if napi ever emits additional glue/types (wasm shim, extra entry).
       - name: Upload JS loader (once per package)
         if: matrix.jsLoader
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: js-loader-${{ matrix.pkg }}
           path: |
-            packages-rust/${{ matrix.pkg }}/dist/index.js
-            packages-rust/${{ matrix.pkg }}/dist/index.cjs
-            packages-rust/${{ matrix.pkg }}/dist/index.d.ts
-            packages-rust/${{ matrix.pkg }}/dist/index.d.cts
+            packages-rust/${{ matrix.pkg }}/dist
+            !packages-rust/${{ matrix.pkg }}/dist/*.node
           if-no-files-found: error
 
   # Stage C: assemble artifacts per changed crate, publish per-platform
@@ -222,9 +224,18 @@ jobs:
               [ -d "$dir" ] && cp -r "$dir"/. "packages-rust/$pkg/artifacts/"
             done
             # JS loader / .d.ts go straight into the package's dist/.
-            if [ -d "js-loaders/js-loader-$pkg" ]; then
-              cp -r "js-loaders/js-loader-$pkg"/. "packages-rust/$pkg/dist/"
-            fi
+            # download-artifact only creates a per-artifact subdir
+            # (js-loaders/js-loader-<pkg>/) when MORE THAN ONE artifact
+            # matches its pattern. With a single rust package the
+            # `js-loader-*` pattern matches exactly one artifact, which it
+            # then extracts FLAT into js-loaders/ — no subdir. Handle both
+            # layouts, else the copy silently no-ops and ships a distless
+            # package. (Flat layout is unambiguous: a lone matched artifact
+            # means only this package's loaders are present.)
+            js_src="js-loaders/js-loader-$pkg"
+            [ -d "$js_src" ] || js_src="js-loaders"
+            mkdir -p "packages-rust/$pkg/dist"
+            cp -r "$js_src"/. "packages-rust/$pkg/dist/"
             echo "::endgroup::"
           done
 
@@ -283,6 +294,27 @@ jobs:
       # is already in place from the distribute-artifacts step (when included).
       - name: Build JS-only packages
         run: pnpm exec turbo run build --filter='./packages/*'
+
+      # Guard: every native crate's dist/ JS loader is gitignored, so the
+      # publish runner only has it if the distribute-artifacts step copied
+      # the `js-loader-<pkg>` artifact in. That copy is guarded by a silent
+      # `if [ -d ... ]`, and `changeset publish` does not error on an empty
+      # `files:["dist"]` glob — so a missing artifact ships a distless main
+      # package (resolves `./dist/index.js` → ENOENT for every consumer).
+      # Fail loud here instead. Only checked when native crates were built.
+      - name: Verify native dist loaders present
+        if: needs.version.outputs.nativeChanged == 'true'
+        run: |
+          set -euo pipefail
+          for pkg in $(echo '${{ needs.version.outputs.changedPackages }}' | jq -r '.[]'); do
+            for f in index.js index.cjs index.d.ts index.d.cts; do
+              path="packages-rust/$pkg/dist/$f"
+              if [ ! -f "$path" ]; then
+                echo "::error::$path missing — js-loader-$pkg artifact never arrived; aborting before a distless publish." >&2
+                exit 1
+              fi
+            done
+          done
 
       # Publishes every workspace package whose version is newer than npm —
       # native crates plus any pure-JS siblings bumped by this release.

@@ -7,3 +7,4 @@
 import './sync-cargo-package.mts';
 import './sync-napi-subpackages.mts';
 import './sync-cargo-lock.mts';
+import './sync-licenses.mts';

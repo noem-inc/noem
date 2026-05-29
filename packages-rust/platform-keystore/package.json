@@ -34,7 +34,9 @@
   "sideEffects": false,
   "files": [
     "dist",
-    "CHANGELOG.md"
+    "CHANGELOG.md",
+    "LICENSE-APACHE",
+    "LICENSE-MIT"
   ],
   "exports": {
     ".": {
