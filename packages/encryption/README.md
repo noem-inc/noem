@@ -3,6 +3,7 @@
 [![Release](https://github.com/noem-inc/noem/actions/workflows/release.yml/badge.svg?branch=main)](https://github.com/noem-inc/noem/actions/workflows/release.yml)
 [![npm version](https://img.shields.io/npm/v/@noem/encryption.svg)](https://www.npmjs.com/package/@noem/encryption)
 [![Security: Trusted Publisher](https://img.shields.io/badge/security-trusted--publisher-green?logo=github)](https://www.npmjs.com/package/@noem/encryption)
+[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/noem-inc/noem/badge)](https://securityscorecards.dev/viewer/?uri=github.com/noem-inc/noem)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
 Field-level encryption helper built on WebCrypto AES-256-GCM. Produces a
