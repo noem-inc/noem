@@ -1,5 +1,11 @@
 # @noem/platform-keystore
 
+## 0.0.10
+
+### Patch Changes
+
+- ed20705: Fix missing dist and license files
+
 ## 0.0.9
 
 ### Patch Changes
