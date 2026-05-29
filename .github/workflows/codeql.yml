@@ -33,16 +33,15 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          # Both languages use `build-mode: none` — the extractor reads
+          # source directly. Rust dropped `manual` mode in CodeQL 2.25.x;
+          # source extraction reads Cargo.toml/Cargo.lock + .rs files
+          # without a cargo build, so no pnpm/node/toolchain setup needed.
           - language: javascript-typescript
-            # `none` skips the build phase — CodeQL extracts TS/JS directly
-            # from source. Faster and avoids needing pnpm install.
             build-mode: none
             runs-on: ubuntu-latest
           - language: rust
-            # Rust extractor (GA Apr 2024) needs a real build. `manual` lets
-            # us run cargo build with the same toolchain pin used by CI so
-            # the analysis sees identical generated code.
-            build-mode: manual
+            build-mode: none
             runs-on: ubuntu-latest
 
     steps:
@@ -51,24 +50,6 @@ jobs:
           egress-policy: audit
 
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-
-      # Rust-only setup: toolchain + pnpm + node so the workspace build
-      # below can resolve napi and produce real cargo invocations for the
-      # CodeQL extractor to trace.
-      - if: matrix.language == 'rust'
-        uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable
-
-      - if: matrix.language == 'rust'
-        uses: pnpm/action-setup@0e279bb959325dab635dd2c09392533439d90093 # v6.0.8
-
-      - if: matrix.language == 'rust'
-        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
-        with:
-          node-version-file: .nvmrc
-          cache: pnpm
-
-      - if: matrix.language == 'rust'
-        run: pnpm install --frozen-lockfile
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@7211b7c8077ea37d8641b6271f6a365a22a5fbfa # v4.36.0
@@ -79,13 +60,6 @@ jobs:
           # default set; `security-and-quality` would also flag style issues
           # which we don't want gating PRs.
           queries: security-extended
-
-      # Manual build for Rust. Drives every crate under packages-rust/ via
-      # the workspace's build pipeline so new crates are picked up
-      # automatically — no per-crate edits to this workflow. napi build
-      # invokes cargo under the hood, which the CodeQL extractor traces.
-      - if: matrix.language == 'rust'
-        run: pnpm exec turbo run build --filter='./packages-rust/*'
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@7211b7c8077ea37d8641b6271f6a365a22a5fbfa # v4.36.0
