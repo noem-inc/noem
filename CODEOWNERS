@@ -1,0 +1,8 @@
+# CODEOWNERS — review gate on CI/release infrastructure.
+#
+
+/.github/                 @marcelo-noem
+/.github/workflows/**     @marcelo-noem
+/.github/dependabot.yml   @marcelo-noem
+/.github/CODEOWNERS       @marcelo-noem
+/CODEOWNERS               @marcelo-noem
