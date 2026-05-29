@@ -6,7 +6,9 @@
   ],
   "main": "platform-keystore.win32-x64-msvc.node",
   "files": [
-    "platform-keystore.win32-x64-msvc.node"
+    "platform-keystore.win32-x64-msvc.node",
+    "LICENSE-APACHE",
+    "LICENSE-MIT"
   ],
   "description": "Hardware-backed key storage for Node and Electron — provision non-exportable keys and seal/unseal secrets via TPM 2.0 (Windows NCrypt) or Apple Secure Enclave",
   "keywords": [
