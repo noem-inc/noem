@@ -1,0 +1,67 @@
+name: CodeQL
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+  schedule:
+    # Catches advisories that land between commits. Runs Monday 05:30 UTC,
+    # offset from the OpenSSF Scorecard schedule (04:30)
+    - cron: "30 5 * * 1"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  analyze:
+    name: Analyze (${{ matrix.language }})
+    runs-on: ${{ matrix.runs-on }}
+    permissions:
+      # Required to upload SARIF results to the Security tab.
+      security-events: write
+      # Required for `github/codeql-action/init` to read action metadata
+      # on private repos. Harmless on public.
+      actions: read
+      contents: read
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Both languages use `build-mode: none` — the extractor reads
+          # source directly. Rust dropped `manual` mode in CodeQL 2.25.x;
+          # source extraction reads Cargo.toml/Cargo.lock + .rs files
+          # without a cargo build, so no pnpm/node/toolchain setup needed.
+          - language: javascript-typescript
+            build-mode: none
+            runs-on: ubuntu-latest
+          - language: rust
+            build-mode: none
+            runs-on: ubuntu-latest
+
+    steps:
+      - uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+        with:
+          egress-policy: audit
+
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@7211b7c8077ea37d8641b6271f6a365a22a5fbfa # v4.36.0
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.build-mode }}
+          # `security-extended` adds higher-precision queries beyond the
+          # default set; `security-and-quality` would also flag style issues
+          # which we don't want gating PRs.
+          queries: security-extended
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@7211b7c8077ea37d8641b6271f6a365a22a5fbfa # v4.36.0
+        with:
+          category: "/language:${{ matrix.language }}"

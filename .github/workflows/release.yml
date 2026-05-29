@@ -7,6 +7,10 @@ on:
 
 concurrency: ${{ github.workflow }}-${{ github.ref }}
 
+# Minimal default permissions; jobs override only what they need.
+permissions:
+  contents: read
+
 jobs:
   # Stage A: maintain the "Version Packages" PR. When that PR merges, all
   # .changeset/*.md are consumed → hasChangesets == "false" → Stages B/C fire.
@@ -23,6 +27,10 @@ jobs:
       changedPackages: ${{ steps.matrix.outputs.changedPackages }}
       nativeChanged: ${{ steps.matrix.outputs.nativeChanged }}
     steps:
+      - uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+        with:
+          egress-policy: audit
+
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           # HEAD~1 needed to diff the merge commit and see which package.json
@@ -68,6 +76,10 @@ jobs:
       matrix: ${{ fromJson(needs.version.outputs.matrix) }}
     runs-on: ${{ matrix.os }}
     steps:
+      - uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+        with:
+          egress-policy: audit
+
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - uses: pnpm/action-setup@0e279bb959325dab635dd2c09392533439d90093 # v6.0.8
@@ -139,6 +151,10 @@ jobs:
       contents: write
       id-token: write
     steps:
+      - uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+        with:
+          egress-policy: audit
+
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - uses: pnpm/action-setup@0e279bb959325dab635dd2c09392533439d90093 # v6.0.8
