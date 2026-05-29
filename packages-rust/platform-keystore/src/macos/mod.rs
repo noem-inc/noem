@@ -1,2 +1,2 @@
-mod keychain;
-pub use keychain::DevKeyStorage;
+mod enclave;
+pub use enclave::EnclaveKeyStorage;

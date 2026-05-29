@@ -231,10 +231,13 @@ name = "noem-platform-keystore"
 version = "0.0.8"
 dependencies = [
  "base64",
+ "core-foundation",
+ "core-foundation-sys",
  "napi",
  "napi-build",
  "napi-derive",
  "security-framework",
+ "security-framework-sys",
  "serde",
  "serde_json",
  "thiserror",

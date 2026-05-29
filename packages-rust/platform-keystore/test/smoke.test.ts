@@ -31,10 +31,10 @@ describe('#getProviderStatus', () => {
 
     const status = await getProviderStatus();
     expect(status.available).toBe(true);
-    expect(status.backend).toBe('macos_keychain');
+    expect(status.backend).toBe('macos_enclave');
 
     // The blocking sync variant returns the same result.
-    expect(getProviderStatusSync().backend).toBe('macos_keychain');
+    expect(getProviderStatusSync().backend).toBe('macos_enclave');
   });
 
   test('report windows backend if running on windows', async () => {
@@ -80,10 +80,10 @@ describe('#getProviderStatusSync', () => {
 
     const status = getProviderStatusSync();
     expect(status.available).toBe(true);
-    expect(status.backend).toBe('macos_keychain');
+    expect(status.backend).toBe('macos_enclave');
 
     // The blocking sync variant returns the same result.
-    expect(getProviderStatusSync().backend).toBe('macos_keychain');
+    expect(getProviderStatusSync().backend).toBe('macos_enclave');
   });
 
   test('report windows backend if running on windows sync', () => {
@@ -122,20 +122,48 @@ describe('#getProviderStatusSync', () => {
 
 test('sync seal/unseal roundtrip stores and reads back a secret', () => {
   if (isMac) {
-    // macOS is a dev stub: createKey returns metadata but stores nothing,
-    // keyExists is always false, and seal/unseal are not yet implemented.
-    // Assert that contract so this test flips when the backend lands.
+    // Real Secure Enclave roundtrip — only runs when the host binary has the
+    // application-identifier entitlement required to persist SE keys. Node
+    // launched via `pnpm test` is typically unsigned in that sense, so
+    // createKey rejects with errSecMissingEntitlement (-34018). Accept that
+    // skip path; the shipped signed `.app` exercises the full roundtrip.
     const keyName = `noem-test-${randomUUID()}`;
-    const info = createKeySync(keyName);
-    expect(info.backend).toBe('macos_keychain');
-    expect(info.exportable).toBe(false);
-    expect(info.algorithm).toBe('EC-P256-SE');
+    const secret = 'correct-horse-battery-staple';
+    try {
+      try {
+        const info = createKeySync(keyName);
+        expect(info.backend).toBe('macos_enclave');
+        expect(info.exportable).toBe(false);
+        expect(info.algorithm).toBe('EC-P256-SE');
+        expect(keyExistsSync(keyName)).toBe(true);
 
-    expect(keyExistsSync(keyName)).toBe(false);
-    // sealSync is synchronous and throws — assert the throw directly (not .rejects).
-    expect(() => sealSync(keyName, Buffer.from('secret', 'utf8'))).toThrow(
-      /not yet implemented/i,
-    );
+        const blob = sealSync(keyName, Buffer.from(secret, 'utf8'));
+        expect(blob.keyName).toBe(keyName);
+        expect(blob.backend).toBe('macos_enclave');
+        expect(blob.ciphertext.length).toBeGreaterThan(0);
+
+        const out = unsealSync(keyName, blob);
+        expect(Buffer.from(out).toString('utf8')).toBe(secret);
+
+        // One key seals many independent secrets.
+        const blob2 = sealSync(keyName, Buffer.from('secret', 'utf8'));
+        const out2 = unsealSync(keyName, blob2);
+        expect(Buffer.from(out2).toString('utf8')).toBe('secret');
+
+        console.info('Secure Enclave Available roundtrip');
+      } finally {
+        try {
+          deleteKeySync(keyName);
+        } catch {
+          /* key may not have been created — ignore */
+        }
+      }
+    } catch (err) {
+      expect((err as Error).message).toMatch(/-34018|missingentitlement/i);
+      console.info(
+        'Secure Enclave Not Available (unsigned host) — skipping roundtrip',
+      );
+    }
     return;
   }
 
@@ -194,19 +222,48 @@ test('sync seal/unseal roundtrip stores and reads back a secret', () => {
 
 test('async seal/unseal roundtrip stores and reads back a secret', async () => {
   if (isMac) {
-    // macOS is a dev stub: createKey returns metadata but stores nothing,
-    // keyExists is always false, and seal/unseal are not yet implemented.
-    // Assert that contract so this test flips when the backend lands.
+    // Real Secure Enclave roundtrip — only runs when the host binary has the
+    // application-identifier entitlement required to persist SE keys. Node
+    // launched via `pnpm test` is typically unsigned in that sense, so
+    // createKey rejects with errSecMissingEntitlement (-34018). Accept that
+    // skip path; the shipped signed `.app` exercises the full roundtrip.
     const keyName = `noem-test-${randomUUID()}`;
-    const info = await createKey(keyName);
-    expect(info.backend).toBe('macos_keychain');
-    expect(info.exportable).toBe(false);
-    expect(info.algorithm).toBe('EC-P256-SE');
+    const secret = 'correct-horse-battery-staple';
+    try {
+      try {
+        const info = await createKey(keyName);
+        expect(info.backend).toBe('macos_enclave');
+        expect(info.exportable).toBe(false);
+        expect(info.algorithm).toBe('EC-P256-SE');
+        expect(await keyExists(keyName)).toBe(true);
 
-    expect(await keyExists(keyName)).toBe(false);
-    await expect(seal(keyName, Buffer.from('secret', 'utf8'))).rejects.toThrow(
-      /not yet implemented/i,
-    );
+        const blob = await seal(keyName, Buffer.from(secret, 'utf8'));
+        expect(blob.keyName).toBe(keyName);
+        expect(blob.backend).toBe('macos_enclave');
+        expect(blob.ciphertext.length).toBeGreaterThan(0);
+
+        const out = await unseal(keyName, blob);
+        expect(Buffer.from(out).toString('utf8')).toBe(secret);
+
+        // One key seals many independent secrets.
+        const blob2 = await seal(keyName, Buffer.from('secret', 'utf8'));
+        const out2 = await unseal(keyName, blob2);
+        expect(Buffer.from(out2).toString('utf8')).toBe('secret');
+
+        console.info('Secure Enclave Available roundtrip');
+      } finally {
+        try {
+          await deleteKey(keyName);
+        } catch {
+          /* key may not have been created — ignore */
+        }
+      }
+    } catch (err) {
+      expect((err as Error).message).toMatch(/-34018|missingentitlement/i);
+      console.info(
+        'Secure Enclave Not Available (unsigned host) — skipping roundtrip',
+      );
+    }
     return;
   }
 

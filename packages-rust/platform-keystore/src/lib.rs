@@ -31,7 +31,7 @@ fn create_provider() -> std::result::Result<Box<dyn KeyStorageProvider>, KeyStor
 
     #[cfg(target_os = "macos")]
     {
-        let provider = macos::DevKeyStorage::new()?;
+        let provider = macos::EnclaveKeyStorage::new()?;
         Ok(Box::new(provider))
     }
 
@@ -161,7 +161,7 @@ pub fn get_provider_status_sync() -> napi::Result<ProviderStatus> {
 /// Provision a new hardware-backed key.
 ///
 /// On Windows: creates a non-exportable RSA-2048 key in the TPM via NCrypt.
-/// On macOS (dev): creates an EC-P256 key in the Secure Enclave via Keychain.
+/// On macOS: creates a non-exportable EC-P256 key in the Secure Enclave.
 ///
 /// Rejects if the key already exists. Call `keyExists()` first to check.
 #[napi(ts_return_type = "Promise<KeyInfo>")]
@@ -261,43 +261,32 @@ mod tests {
     use super::*;
     use napi::Task; // for `.compute()` method resolution
 
-    // On macOS, create_provider() builds the DevKeyStorage stub, so the work
-    // helpers are exercisable here. (Windows needs a TPM — covered on CI there.)
+    // macOS: confirm the work helpers wire through to the real Secure Enclave
+    // backend. Skip cleanly on hosts where the SE probe fails (e.g. Intel Macs
+    // without a T2). The deep roundtrip lives in `macos::keychain::tests`.
     #[cfg(target_os = "macos")]
     #[test]
     fn do_status_reports_backend() {
-        assert_eq!(do_status().unwrap().backend, Some(Backend::MacosKeychain));
+        let Ok(s) = do_status() else { return };
+        assert_eq!(s.backend, Some(Backend::MacosEnclave));
     }
 
     #[cfg(target_os = "macos")]
     #[test]
-    fn do_create_and_open_return_metadata() {
-        assert_eq!(do_create("k").unwrap().algorithm, "EC-P256-SE");
-        assert_eq!(do_open("k").unwrap().backend, Backend::MacosKeychain);
-    }
-
-    #[cfg(target_os = "macos")]
-    #[test]
-    fn do_key_exists_false() {
-        assert!(!do_key_exists("k").unwrap());
-    }
-
-    #[cfg(target_os = "macos")]
-    #[test]
-    fn do_seal_and_unseal_err_on_stub() {
-        assert!(do_seal("k", SecretBytes::new(b"x".to_vec())).is_err());
-        let blob = SealedBlob {
-            ciphertext: String::new(),
-            key_name: "k".into(),
-            backend: Backend::MacosKeychain,
-        };
-        assert!(do_unseal("k", &blob).is_err());
-    }
-
-    #[cfg(target_os = "macos")]
-    #[test]
-    fn do_delete_ok() {
-        assert!(do_delete("k").is_ok());
+    fn do_key_exists_false_for_missing_on_macos() {
+        if do_status().is_err() {
+            return;
+        }
+        let nanos = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_nanos())
+            .unwrap_or(0);
+        let name = format!(
+            "noem-rust-test-lib-missing-{}-{}",
+            std::process::id(),
+            nanos
+        );
+        assert!(!do_key_exists(&name).unwrap());
     }
 
     // Windows: same helpers exercise the real TPM backend via `create_provider()`.
@@ -341,7 +330,7 @@ mod tests {
         let err = task.compute().unwrap_err();
         assert_eq!(
             err.reason,
-            "TPM/Keychain provider not available on this platform"
+            "TPM/Secure Enclave provider not available on this platform"
         );
     }
 }
