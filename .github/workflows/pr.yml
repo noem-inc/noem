@@ -22,6 +22,7 @@ jobs:
         include:
           - os: macos-latest
             lint: true
+            spellcheck: true
           - os: ubuntu-latest
           - os: windows-latest
     runs-on: ${{ matrix.os }}
@@ -32,7 +33,8 @@ jobs:
 
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
-      - uses: streetsidesoftware/cspell-action@de2a73e963e7443969755b648a1008f77033c5b2 # v8.4.0
+      - if: matrix.spellcheck
+        uses: streetsidesoftware/cspell-action@de2a73e963e7443969755b648a1008f77033c5b2 # v8.4.0
 
       - uses: pnpm/action-setup@0e279bb959325dab635dd2c09392533439d90093 # v6.0.8
 

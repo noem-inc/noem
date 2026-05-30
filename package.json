@@ -5,6 +5,7 @@
     "postinstall": "node scripts/sync-all-versions.mts",
     "build": "turbo run build",
     "dev": "turbo run dev",
+    "spellcheck": "cspell lint .",
     "lint": "turbo run lint",
     "lint:fix": "turbo run lint:fix",
     "test": "turbo run test",
