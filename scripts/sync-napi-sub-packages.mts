@@ -13,7 +13,7 @@
  *
  * The parent's `optionalDependencies[<subpackage-name>]` use the `link:`
  * protocol so the lockfile resolves locally without registry lookups (the
- * subpackages aren't published yet at install time). `napi pre-publish`
+ * sub-packages aren't published yet at install time). `napi pre-publish`
  * rewrites them to concrete versions on the publish runner, so we don't
  * touch them here.
  */
@@ -86,7 +86,7 @@ for (const entry of readdirSync(packagesRootDir, { withFileTypes: true })) {
   const packageJsonPath = resolve(packageDir, 'package.json');
   const npmDir = resolve(packageDir, 'npm');
 
-  // Skip packages that aren't napi-rs hybrids with per-platform subpackages.
+  // Skip packages that aren't napi-rs hybrids with per-platform sub-packages.
   if (!existsSync(packageJsonPath) || !existsSync(npmDir)) {
     continue;
   }
@@ -96,7 +96,7 @@ for (const entry of readdirSync(packagesRootDir, { withFileTypes: true })) {
   ) as PackageJson;
 
   console.log(
-    `Syncing napi subpackages for ${entry.name} → version=(${parentPkg.version})`,
+    `Syncing napi sub-packages for ${entry.name} → version=(${parentPkg.version})`,
   );
 
   for (const triple of readdirSync(npmDir, { withFileTypes: true })) {

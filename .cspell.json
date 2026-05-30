@@ -1,0 +1,25 @@
+{
+  "$schema": "https://raw.githubusercontent.com/streetsidesoftware/cspell/main/cspell.schema.json",
+  "version": "0.2",
+  "language": "en",
+  "ignoreRandomStrings": true,
+  "useGitignore": true,
+  "words": [
+    "noem",
+    "smol",
+    "luhn",
+    "rustup",
+    "msvc",
+    "winget",
+    "serde",
+    "clippy",
+    "mtsx",
+    "napi"
+  ],
+  "ignorePaths": [
+    "packages/**",
+    "packages-rust/**",
+    "**pnpm-lock.yaml",
+    "**.lock"
+  ]
+}
