@@ -24,6 +24,9 @@
     "subpackages",
     "picklist",
     "algs",
+    "nvmrc",
+    "dtolnay",
+    "taiki",
     "repr",
     "napi"
   ],
