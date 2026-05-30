@@ -5,6 +5,6 @@
 // These jobs should be fully synchronous
 
 import './sync-cargo-package.mts';
-import './sync-napi-subpackages.mts';
+import './sync-napi-sub-packages.mts';
 import './sync-cargo-lock.mts';
 import './sync-licenses.mts';

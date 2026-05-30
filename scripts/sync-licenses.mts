@@ -40,7 +40,7 @@ for (const targetPackageJsonPath of targetPackageJsonPaths) {
   );
 
   console.log(
-    `Writting license files to package.json files array. licenses=(${licensesLogString}) target=(${relativePathForLog})`,
+    `Writing license files to package.json files array. licenses=(${licensesLogString}) target=(${relativePathForLog})`,
   );
   writeFileSync(
     targetPackageJsonPath,
