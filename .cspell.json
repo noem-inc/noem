@@ -14,11 +14,25 @@
     "serde",
     "clippy",
     "mtsx",
+    "ciphertext",
+    "zeroize",
+    "ncrypt",
+    "libuv",
+    "threadpool",
+    "oaep",
+    "ecies",
+    "subpackages",
+    "picklist",
+    "algs",
+    "repr",
     "napi"
   ],
   "ignorePaths": [
-    "packages/**",
-    "packages-rust/**",
+    "*.rs",
+    "*.toml",
+    "**package.json",
+    "**test**",
+    "pnpm-workspace.yaml",
     "**pnpm-lock.yaml",
     "**.lock"
   ]

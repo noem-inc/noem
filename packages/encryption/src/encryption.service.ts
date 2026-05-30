@@ -70,7 +70,7 @@ export class EncryptionService {
    * @param data The string to be encrypted, if a non-string needs to be encrypted then cast it to string.
    * @param aad The Additional Authenticated Data for uniqueness. The exact same value needs to be passed
    *            in to the decryptData function.
-   * @returns A promise wrapping the encryption algorythm
+   * @returns A promise wrapping the encryption algorithm
    */
   async encryptData(data: string, aad: string): Promise<EncryptedDataEnvelope> {
     if (!this.isEncryptionEnabled) {

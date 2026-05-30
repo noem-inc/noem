@@ -91,7 +91,7 @@ const KEY = "noem-db-key";
 if (!(await keyExists(KEY))) await createKey(KEY);
 
 const sealed = await seal(KEY, Buffer.from("super-secret-db-password"));
-// persist `sealed` to disk as-is — ciphertext is base64 and safe at rest
+// persist `sealed` to disk as-is — cipher-text is base64 and safe at rest
 
 const plaintext = await unseal(KEY, sealed); // Buffer
 // pass straight to SQLCipher PRAGMA key, then drop the reference
@@ -204,7 +204,7 @@ Releases use [Changesets](https://github.com/changesets/changesets). After a
 Version Packages PR merges, `.github/workflows/release.yml` matrix-builds the
 crate on Windows + macOS runners (one job per `napi.targets` entry), uploads
 each `.node`, then a publish job runs `napi pre-publish` to publish the per-
-platform subpackages and `changeset publish` for the main package. The
+platform sub-packages and `changeset publish` for the main package. The
 matrix is generated dynamically from `packages-rust/*/package.json` by
 `scripts/release-matrix.mts` — no per-package hardcoding in the workflow.
 
