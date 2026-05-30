@@ -28,7 +28,7 @@
 
 ### Patch Changes
 
-- e59934b: Rerigger to clean build
+- e59934b: Retrigger to clean build
 
 ## 0.0.5
 
