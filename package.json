@@ -2,6 +2,7 @@
   "name": "noem",
   "private": true,
   "scripts": {
+    "postinstall": "node scripts/sync-all-versions.mts",
     "build": "turbo run build",
     "dev": "turbo run dev",
     "lint": "turbo run lint",

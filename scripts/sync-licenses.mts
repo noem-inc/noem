@@ -44,7 +44,7 @@ for (const targetPackageJsonPath of targetPackageJsonPaths) {
   );
   writeFileSync(
     targetPackageJsonPath,
-    JSON.stringify(packageJson, undefined, 2),
+    `${JSON.stringify(packageJson, undefined, 2)}\n`,
   );
 
   for (const licenseFileName of licenseFileNames) {
