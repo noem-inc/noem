@@ -121,7 +121,7 @@ impl TpmKeyStorage {
             }
             return Err(KeyStoreError::PlatformError(
                 format!("NCryptOpenKey failed for '{key_name}'"),
-                e.code().0 as u32,
+                e.code().0,
             ));
         }
 
@@ -441,7 +441,7 @@ impl KeyStorageProvider for TpmKeyStorage {
         if let Err(e) = status {
             return Err(KeyStoreError::PlatformError(
                 "NCryptDeleteKey failed".to_string(),
-                e.code().0 as u32,
+                e.code().0,
             ));
         }
 
@@ -482,7 +482,7 @@ fn get_u32_property(handle: NCRYPT_HANDLE, prop: PCWSTR) -> Result<u32, KeyStore
         )
     }
     .map_err(|e| {
-        KeyStoreError::PlatformError("NCryptGetProperty failed".to_string(), e.code().0 as u32)
+        KeyStoreError::PlatformError("NCryptGetProperty failed".to_string(), e.code().0)
     })?;
     Ok(u32::from_ne_bytes(buf))
 }
@@ -494,7 +494,7 @@ fn get_string_property(handle: NCRYPT_HANDLE, prop: PCWSTR) -> Result<String, Ke
         .map_err(|e| {
             KeyStoreError::PlatformError(
                 "NCryptGetProperty size query failed".to_string(),
-                e.code().0 as u32,
+                e.code().0,
             )
         })?;
 
@@ -509,7 +509,7 @@ fn get_string_property(handle: NCRYPT_HANDLE, prop: PCWSTR) -> Result<String, Ke
         )
     }
     .map_err(|e| {
-        KeyStoreError::PlatformError("NCryptGetProperty failed".to_string(), e.code().0 as u32)
+        KeyStoreError::PlatformError("NCryptGetProperty failed".to_string(), e.code().0)
     })?;
 
     let wide: Vec<u16> = buf[..cb as usize]
