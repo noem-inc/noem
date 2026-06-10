@@ -75,6 +75,9 @@ importers:
       '@noem/platform-keystore-darwin-arm64':
         specifier: link:./npm/darwin-arm64
         version: link:npm/darwin-arm64
+      '@noem/platform-keystore-darwin-x64':
+        specifier: link:./npm/darwin-x64
+        version: link:npm/darwin-x64
       '@noem/platform-keystore-win32-arm64-msvc':
         specifier: link:./npm/win32-arm64-msvc
         version: link:npm/win32-arm64-msvc

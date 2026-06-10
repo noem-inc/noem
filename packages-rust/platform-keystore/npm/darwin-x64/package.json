@@ -1,0 +1,53 @@
+{
+  "name": "@noem/platform-keystore-darwin-x64",
+  "version": "0.0.10",
+  "cpu": [
+    "x64"
+  ],
+  "main": "platform-keystore.darwin-x64.node",
+  "files": [
+    "platform-keystore.darwin-x64.node",
+    "LICENSE-APACHE",
+    "LICENSE-MIT"
+  ],
+  "description": "Hardware-backed key storage for Node and Electron — provision non-exportable keys and seal/unseal secrets via TPM 2.0 (Windows NCrypt) or Apple Secure Enclave",
+  "keywords": [
+    "tpm",
+    "keystore",
+    "ncrypt",
+    "keychain",
+    "secure-enclave",
+    "encryption",
+    "seal",
+    "nist",
+    "napi",
+    "native",
+    "hardware-security",
+    "electron",
+    "node-api"
+  ],
+  "author": {
+    "name": "Noem Inc.",
+    "url": "https://www.noem.io/"
+  },
+  "homepage": "https://github.com/noem-inc/noem/tree/main/packages-rust/platform-keystore#readme",
+  "license": "MIT OR Apache-2.0",
+  "engines": {
+    "node": ">=18"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/noem-inc/noem.git",
+    "directory": "packages-rust/platform-keystore"
+  },
+  "bugs": {
+    "url": "https://github.com/noem-inc/noem/issues"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "os": [
+    "darwin"
+  ]
+}
