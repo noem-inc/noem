@@ -1,5 +1,11 @@
 # @noem/platform-keystore
 
+## 0.0.11
+
+### Patch Changes
+
+- 5308812: Fix error code handling and add darwin x64 support
+
 ## 0.0.10
 
 ### Patch Changes
