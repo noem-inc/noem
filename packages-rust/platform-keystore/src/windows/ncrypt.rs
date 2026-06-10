@@ -6,6 +6,7 @@ use crate::types::*;
 use core::ffi::c_void;
 
 use base64::{Engine as _, engine::general_purpose::STANDARD};
+use windows::Win32::Foundation::{NTE_BAD_KEYSET, NTE_EXISTS};
 use windows::Win32::Security::Cryptography::{
     BCRYPT_OAEP_PADDING_INFO, BCRYPT_SHA256_ALGORITHM, CERT_KEY_SPEC,
     NCRYPT_ALGORITHM_GROUP_PROPERTY, NCRYPT_ALLOW_EXPORT_FLAG, NCRYPT_ALLOW_PLAINTEXT_EXPORT_FLAG,
@@ -110,8 +111,18 @@ impl TpmKeyStorage {
             )
         };
 
-        if status.is_err() {
-            return Err(KeyStoreError::KeyNotFound(key_name.to_string()));
+        // Only NTE_BAD_KEYSET means "no key with this name". Anything else
+        // (access denied, TPM busy, ...) is a real platform failure — mapping
+        // it to KeyNotFound would make key_exists() report false for keys
+        // that exist but errored.
+        if let Err(e) = status {
+            if e.code() == NTE_BAD_KEYSET {
+                return Err(KeyStoreError::KeyNotFound(key_name.to_string()));
+            }
+            return Err(KeyStoreError::PlatformError(
+                format!("NCryptOpenKey failed for '{key_name}'"),
+                e.code().0 as u32,
+            ));
         }
 
         Ok(KeyHandle(key_handle))
@@ -185,10 +196,16 @@ impl KeyStorageProvider for TpmKeyStorage {
             )
         };
 
-        if status.is_err() {
+        if let Err(e) = status {
+            // The key_exists() precheck above is racy — a concurrent create
+            // can land between it and here. NCrypt reports that as NTE_EXISTS
+            // (no NCRYPT_OVERWRITE_KEY_FLAG passed); surface the same error
+            // type the precheck would have.
+            if e.code() == NTE_EXISTS {
+                return Err(KeyStoreError::KeyAlreadyExists(key_name.to_string()));
+            }
             return Err(KeyStoreError::ProvisioningFailed(format!(
-                "NCryptCreatePersistedKey failed: {:?}",
-                status
+                "NCryptCreatePersistedKey failed: {e:?}"
             )));
         }
 
