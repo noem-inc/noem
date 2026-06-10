@@ -136,7 +136,7 @@ fn key_present(tag: &[u8]) -> Result<bool, KeyStoreError> {
     } else {
         Err(KeyStoreError::PlatformError(
             "SecItemCopyMatching probe failed".into(),
-            status as u32,
+            status,
         ))
     }
 }
@@ -151,7 +151,7 @@ fn find_private_key(tag: &[u8]) -> Result<Option<SecKey>, KeyStoreError> {
     if status != errSecSuccess {
         return Err(KeyStoreError::PlatformError(
             "SecItemCopyMatching failed".into(),
-            status as u32,
+            status,
         ));
     }
     if result.is_null() {
@@ -303,7 +303,7 @@ impl KeyStorageProvider for EnclaveKeyStorage {
             return Ok(());
         };
         key.delete().map_err(|e: SfError| {
-            KeyStoreError::PlatformError("SecItemDelete failed".into(), e.code() as u32)
+            KeyStoreError::PlatformError("SecItemDelete failed".into(), e.code())
         })
     }
 }

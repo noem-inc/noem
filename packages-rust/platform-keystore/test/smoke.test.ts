@@ -155,8 +155,6 @@ test.runIf(isWindows)(
     // runners have no TPM, so the provider rejects with ProviderUnavailable.
     try {
       const keyName = `noem-test-${randomUUID()}`;
-      // ~28 bytes — fits a single RSA-2048 OAEP-SHA256 operation (~190B cap)
-      // and matches the intended DB-password use case.
       const secret = 'correct-horse-battery-staple';
 
       try {
@@ -179,6 +177,13 @@ test.runIf(isWindows)(
 
         const out2 = unsealSync(keyName, blob2);
         expect(Buffer.from(out2).toString('utf8')).toBe('secret');
+
+        // Envelope encryption: payloads beyond one RSA block (~190B) work.
+        const big = 'x'.repeat(4096);
+        const bigBlob = sealSync(keyName, Buffer.from(big, 'utf8'));
+        expect(Buffer.from(unsealSync(keyName, bigBlob)).toString('utf8')).toBe(
+          big,
+        );
 
         console.info('TPM Available roundtrip');
       } finally {
@@ -263,8 +268,6 @@ test.runIf(isWindows)(
     // runners have no TPM, so the provider rejects with ProviderUnavailable.
     try {
       const keyName = `noem-test-${randomUUID()}`;
-      // ~28 bytes — fits a single RSA-2048 OAEP-SHA256 operation (~190B cap)
-      // and matches the intended DB-password use case.
       const secret = 'correct-horse-battery-staple';
 
       try {
@@ -287,6 +290,13 @@ test.runIf(isWindows)(
 
         const out2 = await unseal(keyName, blob2);
         expect(Buffer.from(out2).toString('utf8')).toBe('secret');
+
+        // Envelope encryption: payloads beyond one RSA block (~190B) work.
+        const big = 'x'.repeat(4096);
+        const bigBlob = await seal(keyName, Buffer.from(big, 'utf8'));
+        expect(
+          Buffer.from(await unseal(keyName, bigBlob)).toString('utf8'),
+        ).toBe(big);
 
         console.info('TPM Available roundtrip');
       } finally {

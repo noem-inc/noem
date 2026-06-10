@@ -27,8 +27,11 @@ pub enum KeyStoreError {
     #[error("Key provisioning failed: {0}")]
     ProvisioningFailed(String),
 
-    #[error("Platform error: {0} (code: {1})")]
-    PlatformError(String, u32),
+    // Signed code: macOS OSStatus is negative (e.g. errSecMissingEntitlement
+    // = -34018) and Windows HRESULTs are conventionally read in hex — show
+    // both so the code is directly searchable in platform docs.
+    #[error("Platform error: {0} (code: {1}, hex: {1:#010x})")]
+    PlatformError(String, i32),
 }
 
 impl From<KeyStoreError> for napi::Error {
@@ -178,7 +181,13 @@ mod tests {
         );
         assert_eq!(
             KeyStoreError::PlatformError("oops".into(), 5).to_string(),
-            "Platform error: oops (code: 5)"
+            "Platform error: oops (code: 5, hex: 0x00000005)"
+        );
+        // Negative OSStatus stays readable in decimal and maps to the
+        // two's-complement hex form used by platform docs.
+        assert_eq!(
+            KeyStoreError::PlatformError("se".into(), -34018).to_string(),
+            "Platform error: se (code: -34018, hex: 0xffff7b1e)"
         );
     }
 

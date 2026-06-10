@@ -58,13 +58,15 @@
     "targets": [
       "x86_64-pc-windows-msvc",
       "aarch64-pc-windows-msvc",
-      "aarch64-apple-darwin"
+      "aarch64-apple-darwin",
+      "x86_64-apple-darwin"
     ]
   },
   "optionalDependencies": {
     "@noem/platform-keystore-win32-x64-msvc": "link:./npm/win32-x64-msvc",
     "@noem/platform-keystore-win32-arm64-msvc": "link:./npm/win32-arm64-msvc",
-    "@noem/platform-keystore-darwin-arm64": "link:./npm/darwin-arm64"
+    "@noem/platform-keystore-darwin-arm64": "link:./npm/darwin-arm64",
+    "@noem/platform-keystore-darwin-x64": "link:./npm/darwin-x64"
   },
   "publishConfig": {
     "access": "public",
