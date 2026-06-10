@@ -23,7 +23,7 @@ main process without rebuilds — match Electron's Node-API version, not its Nod
 
 | Platform         | Backend                         | Status                                |
 | ---------------- | ------------------------------- | ------------------------------------- |
-| Windows          | TPM 2.0 via NCrypt Platform KSP | ✅ Implemented (RSA-2048 OAEP-SHA256) |
+| Windows          | TPM 2.0 via NCrypt Platform KSP | ✅ Implemented (AES-256-GCM envelope, RSA-2048 OAEP-SHA256 key wrap) |
 | macOS (Apple Si) | Secure Enclave (EC-P256)        | ✅ Implemented (EC-P256 ECIES)        |
 | Other            | —                               | ❌ Unsupported                        |
 

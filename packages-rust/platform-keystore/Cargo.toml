@@ -32,6 +32,12 @@ features = ["derive"]
 version = "0.62"
 features = ["Win32_Security_Cryptography", "Win32_System_TpmBaseServices", "Win32_Foundation"]
 
+# Envelope encryption: the TPM RSA key only wraps a per-seal AES key; the
+# payload itself is AES-256-GCM, so plaintext size is unbounded (mirrors the
+# macOS ECIES behaviour).
+[target."cfg(target_os = \"windows\")".dependencies.aes-gcm]
+version = "0.10"
+
 [target."cfg(target_os = \"macos\")".dependencies]
 core-foundation = "0.10"
 core-foundation-sys = "0.8"

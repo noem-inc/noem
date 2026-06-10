@@ -1,10 +1,14 @@
 #![cfg(target_os = "windows")]
 
+use crate::envelope;
 use crate::provider::KeyStorageProvider;
 use crate::types::*;
 
 use core::ffi::c_void;
 
+use aes_gcm::aead::rand_core::RngCore;
+use aes_gcm::aead::{Aead, OsRng};
+use aes_gcm::{Aes256Gcm, KeyInit, Nonce};
 use base64::{Engine as _, engine::general_purpose::STANDARD};
 use windows::Win32::Foundation::{NTE_BAD_KEYSET, NTE_EXISTS};
 use windows::Win32::Security::Cryptography::{
@@ -21,6 +25,7 @@ use windows::Win32::System::TpmBaseServices::{
     TPM_DEVICE_INFO, TPM_VERSION_12, TPM_VERSION_20, Tbsi_GetDeviceInfo,
 };
 use windows::core::PCWSTR;
+use zeroize::Zeroizing;
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -178,9 +183,10 @@ impl KeyStorageProvider for TpmKeyStorage {
 
         let name_wide: Vec<u16> = key_name.encode_utf16().chain(std::iter::once(0)).collect();
 
-        // RSA-2048 for key wrapping. The DB password (~32 bytes) fits in a
-        // single RSA-OAEP operation. AES keys in the TPM would require
-        // symmetric encrypt which has different NCrypt semantics.
+        // RSA-2048 for key wrapping: seal() envelope-encrypts the payload
+        // with a per-seal AES-256-GCM key and the TPM key only wraps that
+        // 32-byte key. AES keys in the TPM would require symmetric encrypt
+        // which has different NCrypt semantics.
         let algo_wide: Vec<u16> = "RSA".encode_utf16().chain(std::iter::once(0)).collect();
 
         let mut key_handle = NCRYPT_KEY_HANDLE::default();
@@ -312,119 +318,53 @@ impl KeyStorageProvider for TpmKeyStorage {
         let provider = Self::open_provider()?;
         let key = Self::open_key_handle(&provider, key_name)?;
 
-        // OAEP padding info (SHA-256, no label). Must outlive the NCrypt calls.
-        let padding = oaep_padding_info();
-        let padding_ptr: *const c_void = (&padding as *const BCRYPT_OAEP_PADDING_INFO).cast();
+        // Envelope encryption: a fresh AES-256 data key encrypts the payload
+        // (unbounded size, like the macOS ECIES path); the TPM RSA key only
+        // wraps that 32-byte data key, which fits OAEP's ~190B capacity.
+        let mut aes_key = Zeroizing::new([0u8; 32]);
+        OsRng.fill_bytes(&mut *aes_key);
+        let mut nonce = [0u8; envelope::NONCE_LEN];
+        OsRng.fill_bytes(&mut nonce);
 
-        // Determine output buffer size
-        let mut output_size: u32 = 0;
+        let cipher = Aes256Gcm::new_from_slice(&*aes_key)
+            .map_err(|_| KeyStoreError::EncryptionFailed("AES cipher init failed".into()))?;
+        let ciphertext = cipher
+            .encrypt(Nonce::from_slice(&nonce), plaintext.as_slice())
+            .map_err(|_| KeyStoreError::EncryptionFailed("AES-GCM encryption failed".into()))?;
 
-        let size_status = unsafe {
-            NCryptEncrypt(
-                key.0,
-                Some(plaintext.as_slice()),
-                Some(padding_ptr),
-                None, // output buffer (null = query size)
-                &mut output_size,
-                NCRYPT_PAD_OAEP_FLAG,
-            )
-        };
-
-        if size_status.is_err() {
-            return Err(KeyStoreError::EncryptionFailed(format!(
-                "NCryptEncrypt size query failed: {:?}",
-                size_status
-            )));
-        }
-
-        let mut ciphertext = vec![0u8; output_size as usize];
-        let mut bytes_written: u32 = 0;
-
-        let encrypt_status = unsafe {
-            NCryptEncrypt(
-                key.0,
-                Some(plaintext.as_slice()),
-                Some(padding_ptr),
-                Some(&mut ciphertext),
-                &mut bytes_written,
-                NCRYPT_PAD_OAEP_FLAG,
-            )
-        };
-
-        if encrypt_status.is_err() {
-            return Err(KeyStoreError::EncryptionFailed(format!(
-                "NCryptEncrypt failed: {:?}",
-                encrypt_status
-            )));
-        }
-
-        ciphertext.truncate(bytes_written as usize);
-
-        // Base64 encode for safe JS transport
-        let encoded = STANDARD.encode(&ciphertext);
+        let wrapped_key = rsa_oaep_encrypt(&key, &*aes_key)?;
+        let payload = envelope::build(&wrapped_key, &nonce, &ciphertext);
 
         Ok(SealedBlob {
-            ciphertext: encoded,
+            ciphertext: STANDARD.encode(&payload),
             key_name: key_name.to_string(),
             backend: Backend::NcryptTpm,
         })
     }
 
     fn unseal(&self, key_name: &str, blob: &SealedBlob) -> Result<SecretBytes, KeyStoreError> {
+        let data = STANDARD
+            .decode(&blob.ciphertext)
+            .map_err(|e| KeyStoreError::DecryptionFailed(format!("Invalid base64: {}", e)))?;
+        // Rejects pre-envelope blobs (raw RSA ciphertext) with a "reseal"
+        // error — there is intentionally no legacy decrypt path.
+        let env = envelope::parse(&data)?;
+
         let provider = Self::open_provider()?;
         let key = Self::open_key_handle(&provider, key_name)?;
 
-        let ciphertext = STANDARD
-            .decode(&blob.ciphertext)
-            .map_err(|e| KeyStoreError::DecryptionFailed(format!("Invalid base64: {}", e)))?;
+        let aes_key = Zeroizing::new(rsa_oaep_decrypt(&key, env.wrapped_key)?);
+        let cipher = Aes256Gcm::new_from_slice(&aes_key).map_err(|_| {
+            KeyStoreError::DecryptionFailed("unwrapped AES key has unexpected size".into())
+        })?;
+        let plaintext = cipher
+            .decrypt(Nonce::from_slice(env.nonce), env.ciphertext)
+            .map_err(|_| {
+                KeyStoreError::DecryptionFailed(
+                    "AES-GCM decryption failed (wrong key or corrupted blob)".into(),
+                )
+            })?;
 
-        // OAEP padding info (SHA-256, no label). Must outlive the NCrypt calls.
-        let padding = oaep_padding_info();
-        let padding_ptr: *const c_void = (&padding as *const BCRYPT_OAEP_PADDING_INFO).cast();
-
-        // Determine output buffer size
-        let mut output_size: u32 = 0;
-
-        let size_status = unsafe {
-            NCryptDecrypt(
-                key.0,
-                Some(&ciphertext),
-                Some(padding_ptr),
-                None,
-                &mut output_size,
-                NCRYPT_PAD_OAEP_FLAG,
-            )
-        };
-
-        if size_status.is_err() {
-            return Err(KeyStoreError::DecryptionFailed(format!(
-                "NCryptDecrypt size query failed: {:?}",
-                size_status
-            )));
-        }
-
-        let mut plaintext = vec![0u8; output_size as usize];
-        let mut bytes_written: u32 = 0;
-
-        let decrypt_status = unsafe {
-            NCryptDecrypt(
-                key.0,
-                Some(&ciphertext),
-                Some(padding_ptr),
-                Some(&mut plaintext),
-                &mut bytes_written,
-                NCRYPT_PAD_OAEP_FLAG,
-            )
-        };
-
-        if decrypt_status.is_err() {
-            return Err(KeyStoreError::DecryptionFailed(format!(
-                "NCryptDecrypt failed: {:?}",
-                decrypt_status
-            )));
-        }
-
-        plaintext.truncate(bytes_written as usize);
         Ok(SecretBytes::new(plaintext))
     }
 
@@ -462,6 +402,108 @@ fn oaep_padding_info() -> BCRYPT_OAEP_PADDING_INFO {
         pbLabel: std::ptr::null_mut(),
         cbLabel: 0,
     }
+}
+
+// ---------------------------------------------------------------------------
+// RSA-OAEP wrap/unwrap of the per-seal AES data key
+// ---------------------------------------------------------------------------
+
+/// RSA-OAEP(SHA-256) encrypt `data` with the TPM key. Only used to wrap the
+/// 32-byte AES data key — well inside RSA-2048 OAEP's ~190B capacity.
+fn rsa_oaep_encrypt(key: &KeyHandle, data: &[u8]) -> Result<Vec<u8>, KeyStoreError> {
+    // OAEP padding info (SHA-256, no label). Must outlive the NCrypt calls.
+    let padding = oaep_padding_info();
+    let padding_ptr: *const c_void = (&padding as *const BCRYPT_OAEP_PADDING_INFO).cast();
+
+    // Determine output buffer size
+    let mut output_size: u32 = 0;
+    let size_status = unsafe {
+        NCryptEncrypt(
+            key.0,
+            Some(data),
+            Some(padding_ptr),
+            None, // output buffer (null = query size)
+            &mut output_size,
+            NCRYPT_PAD_OAEP_FLAG,
+        )
+    };
+    if size_status.is_err() {
+        return Err(KeyStoreError::EncryptionFailed(format!(
+            "NCryptEncrypt size query failed: {:?}",
+            size_status
+        )));
+    }
+
+    let mut ciphertext = vec![0u8; output_size as usize];
+    let mut bytes_written: u32 = 0;
+    let encrypt_status = unsafe {
+        NCryptEncrypt(
+            key.0,
+            Some(data),
+            Some(padding_ptr),
+            Some(&mut ciphertext),
+            &mut bytes_written,
+            NCRYPT_PAD_OAEP_FLAG,
+        )
+    };
+    if encrypt_status.is_err() {
+        return Err(KeyStoreError::EncryptionFailed(format!(
+            "NCryptEncrypt failed: {:?}",
+            encrypt_status
+        )));
+    }
+
+    ciphertext.truncate(bytes_written as usize);
+    Ok(ciphertext)
+}
+
+/// RSA-OAEP(SHA-256) decrypt `data` with the TPM key, recovering the wrapped
+/// AES data key. Caller wraps the result in `Zeroizing`.
+fn rsa_oaep_decrypt(key: &KeyHandle, data: &[u8]) -> Result<Vec<u8>, KeyStoreError> {
+    // OAEP padding info (SHA-256, no label). Must outlive the NCrypt calls.
+    let padding = oaep_padding_info();
+    let padding_ptr: *const c_void = (&padding as *const BCRYPT_OAEP_PADDING_INFO).cast();
+
+    // Determine output buffer size
+    let mut output_size: u32 = 0;
+    let size_status = unsafe {
+        NCryptDecrypt(
+            key.0,
+            Some(data),
+            Some(padding_ptr),
+            None,
+            &mut output_size,
+            NCRYPT_PAD_OAEP_FLAG,
+        )
+    };
+    if size_status.is_err() {
+        return Err(KeyStoreError::DecryptionFailed(format!(
+            "NCryptDecrypt size query failed: {:?}",
+            size_status
+        )));
+    }
+
+    let mut plaintext = vec![0u8; output_size as usize];
+    let mut bytes_written: u32 = 0;
+    let decrypt_status = unsafe {
+        NCryptDecrypt(
+            key.0,
+            Some(data),
+            Some(padding_ptr),
+            Some(&mut plaintext),
+            &mut bytes_written,
+            NCRYPT_PAD_OAEP_FLAG,
+        )
+    };
+    if decrypt_status.is_err() {
+        return Err(KeyStoreError::DecryptionFailed(format!(
+            "NCryptDecrypt failed: {:?}",
+            decrypt_status
+        )));
+    }
+
+    plaintext.truncate(bytes_written as usize);
+    Ok(plaintext)
 }
 
 // ---------------------------------------------------------------------------
@@ -572,6 +614,23 @@ mod tests {
 
             let plain = p.unseal(&key, &blob)?;
             assert_eq!(plain.as_slice(), b"correct-horse");
+
+            // Envelope encryption removes the raw RSA-OAEP ~190B cap —
+            // payloads larger than one RSA block must roundtrip too.
+            let big = vec![0x5Au8; 4096];
+            let big_blob = p.seal(&key, SecretBytes::new(big.clone()))?;
+            let big_plain = p.unseal(&key, &big_blob)?;
+            assert_eq!(big_plain.as_slice(), big.as_slice());
+
+            // Pre-envelope blobs (raw RSA ciphertext, no magic) are rejected
+            // with the reseal hint instead of decrypting to garbage.
+            let legacy = SealedBlob {
+                ciphertext: STANDARD.encode([0x42u8; 256]),
+                key_name: key.clone(),
+                backend: Backend::NcryptTpm,
+            };
+            let err = p.unseal(&key, &legacy).unwrap_err();
+            assert!(err.to_string().contains("reseal"));
             Ok(())
         })();
 

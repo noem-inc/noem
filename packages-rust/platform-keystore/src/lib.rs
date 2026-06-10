@@ -1,3 +1,7 @@
+// Only the Windows backend builds/parses envelopes, but the module is
+// platform-independent so its unit tests run on every host.
+#[cfg_attr(not(target_os = "windows"), allow(dead_code))]
+mod envelope;
 mod provider;
 mod types;
 
@@ -73,9 +77,13 @@ fn do_seal(
     create_provider()?.seal(key_name, plaintext)
 }
 
-fn do_unseal(key_name: &str, blob: &SealedBlob) -> std::result::Result<Vec<u8>, KeyStoreError> {
-    let secret = create_provider()?.unseal(key_name, blob)?;
-    Ok(secret.as_slice().to_vec())
+// Returns the zeroizing wrapper itself — converting to a plain Vec here
+// would leave an unzeroized plaintext copy behind (on Electron the JS Buffer
+// can't take ownership of Rust memory, so that copy would linger in freed
+// heap). Callers copy into the JS Buffer and drop the wrapper, wiping the
+// Rust-side plaintext.
+fn do_unseal(key_name: &str, blob: &SealedBlob) -> std::result::Result<SecretBytes, KeyStoreError> {
+    create_provider()?.unseal(key_name, blob)
 }
 
 fn do_delete(key_name: &str) -> std::result::Result<(), KeyStoreError> {
@@ -119,22 +127,23 @@ impl<T: Send + 'static + ToNapiValue + TypeName> Task for BlockingTask<T> {
 }
 
 /// `unseal` returns a `Buffer`, which cannot be constructed off the JS thread.
-/// Decrypt to `Vec<u8>` in `compute`, then build the `Buffer` in `resolve`.
+/// Decrypt to `SecretBytes` in `compute`, then copy into the `Buffer` in
+/// `resolve` — the Rust-side plaintext is zeroed when the wrapper drops.
 pub struct UnsealTask {
     key_name: String,
     blob: SealedBlob,
 }
 
 impl Task for UnsealTask {
-    type Output = Vec<u8>;
+    type Output = SecretBytes;
     type JsValue = Buffer;
 
-    fn compute(&mut self) -> napi::Result<Vec<u8>> {
+    fn compute(&mut self) -> napi::Result<SecretBytes> {
         Ok(do_unseal(&self.key_name, &self.blob)?)
     }
 
-    fn resolve(&mut self, _env: Env, output: Vec<u8>) -> napi::Result<Buffer> {
-        Ok(Buffer::from(output))
+    fn resolve(&mut self, _env: Env, output: SecretBytes) -> napi::Result<Buffer> {
+        Ok(Buffer::from(output.as_slice()))
     }
 }
 
@@ -238,7 +247,8 @@ pub fn unseal(key_name: String, blob: SealedBlob) -> AsyncTask<UnsealTask> {
 /// Synchronous variant of {@link unseal}. Blocks the calling thread.
 #[napi]
 pub fn unseal_sync(key_name: String, blob: SealedBlob) -> napi::Result<Buffer> {
-    Ok(Buffer::from(do_unseal(&key_name, &blob)?))
+    let secret = do_unseal(&key_name, &blob)?;
+    Ok(Buffer::from(secret.as_slice()))
 }
 
 /// Permanently delete a key. Irreversible.
