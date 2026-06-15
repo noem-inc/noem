@@ -300,6 +300,70 @@ describe('noem-virtual-keyboard', () => {
     });
   });
 
+  describe('field type / inputmode detection', () => {
+    const createTarget = (
+      attrs: Record<string, string> = {},
+    ): HTMLInputElement => {
+      const input = document.createElement('input');
+      input.id = 'kb-target';
+      for (const [k, v] of Object.entries(attrs)) {
+        input.setAttribute(k, v);
+      }
+      document.body.appendChild(input);
+      return input;
+    };
+
+    it('uses the telephone keypad for type="tel"', async () => {
+      createTarget({ type: 'tel' });
+      const el = await renderKeyboard({ target: '#kb-target' });
+
+      expect(findKey(el, '#')).toBeDefined();
+      expect(findKey(el, '*')).toBeDefined();
+    });
+
+    it('uses the numeric pad for type="number"', async () => {
+      createTarget({ type: 'number' });
+      const el = await renderKeyboard({ target: '#kb-target' });
+
+      expect(findKey(el, '1')).toBeDefined();
+      expect(
+        getButtons(el).some((b) => b.getAttribute('aria-label') === 'q'),
+      ).toBe(false);
+    });
+
+    it('prefers inputmode over type', async () => {
+      createTarget({ type: 'text', inputmode: 'tel' });
+      const el = await renderKeyboard({ target: '#kb-target' });
+
+      expect(findKey(el, '#')).toBeDefined();
+    });
+
+    it('lets an explicit template win over the field type', async () => {
+      createTarget({ type: 'tel' });
+      const el = await renderKeyboard({
+        target: '#kb-target',
+        template: 'normal-keyboard',
+      });
+
+      expect(findKey(el, 'q')).toBeDefined();
+    });
+
+    it('re-derives the template when the target changes', async () => {
+      const text = createTarget();
+      const phone = document.createElement('input');
+      phone.id = 'kb-phone';
+      phone.type = 'tel';
+      document.body.appendChild(phone);
+      const el = await renderKeyboard({ target: '#kb-target' });
+
+      expect(findKey(el, 'q')).toBeDefined();
+
+      await setProps(el, { target: phone });
+      expect(findKey(el, '#')).toBeDefined();
+      void text;
+    });
+  });
+
   describe('enter in a form', () => {
     const createFormTargets = (
       fieldCount: number,
@@ -474,7 +538,19 @@ describe('noem-virtual-keyboard', () => {
       input.focus();
       await el.updateComplete;
 
-      expect(el.template).toBe('telephone');
+      expect(findKey(el, '#')).toBeDefined();
+      expect(findKey(el, '*')).toBeDefined();
+    });
+
+    it('derives the template from a field type with no override', async () => {
+      const input = makeInput({ type: 'tel' });
+      const el = await renderKeyboard({ autoAttach: '.kiosk' });
+
+      input.focus();
+      await el.updateComplete;
+
+      expect(findKey(el, '#')).toBeDefined();
+      expect(findKey(el, '*')).toBeDefined();
     });
 
     // happy-dom has no layout engine, so drive geometry by hand: a 300px dock
@@ -557,18 +633,37 @@ describe('noem-virtual-keyboard', () => {
       expect(document.body.style.paddingBottom).toBe('');
     });
 
-    it('reverts to the base template for a field without an override', async () => {
+    it('reverts to the default template for a field without an override', async () => {
       const phone = makeInput({ 'data-keyboard-template': 'telephone' });
       const plain = makeInput();
       const el = await renderKeyboard({ autoAttach: '.kiosk' });
 
       phone.focus();
       await el.updateComplete;
-      expect(el.template).toBe('telephone');
+      expect(findKey(el, '#')).toBeDefined();
 
       plain.focus();
       await el.updateComplete;
-      expect(el.template).toBe('normal-keyboard');
+      // A plain text field falls back to the full QWERTY keyboard.
+      expect(findKey(el, 'q')).toBeDefined();
+      expect(findKey(el, 'Space')).toBeDefined();
+    });
+
+    it('lets an explicit template override field type detection', async () => {
+      const input = makeInput({ type: 'tel' });
+      const el = await renderKeyboard({
+        autoAttach: '.kiosk',
+        template: 'numeric',
+      });
+
+      input.focus();
+      await el.updateComplete;
+
+      // Numeric pad, not the telephone keypad the `tel` type would pick.
+      expect(findKey(el, '1')).toBeDefined();
+      expect(
+        getButtons(el).some((b) => b.getAttribute('aria-label') === '#'),
+      ).toBe(false);
     });
   });
 });
