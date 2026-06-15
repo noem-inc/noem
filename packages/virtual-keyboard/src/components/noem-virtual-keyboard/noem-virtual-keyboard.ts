@@ -20,6 +20,7 @@ import {
 } from '../../layouts/templates/shared.js';
 import {
   applyEnter,
+  clearAll,
   deleteBackward,
   findNextField,
   insertText,
@@ -365,6 +366,9 @@ export class NoemVirtualKeyboard extends LitElement {
           break;
         case 'backspace':
           deleteBackward(target);
+          break;
+        case 'clear':
+          clearAll(target);
           break;
         case 'enter':
           this.handleEnterTarget(target);

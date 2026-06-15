@@ -14,6 +14,7 @@ export type KeyAction =
   | 'char'
   | 'space'
   | 'backspace'
+  | 'clear'
   | 'enter'
   | 'shift'
   | 'layer'

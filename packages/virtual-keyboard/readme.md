@@ -1,5 +1,11 @@
 # @noem/virtual-keyboard
 
+[![Release](https://github.com/noem-inc/noem/actions/workflows/release.yml/badge.svg?branch=main)](https://github.com/noem-inc/noem/actions/workflows/release.yml)
+[![npm version](https://img.shields.io/npm/v/@noem/virtual-keyboard.svg)](https://www.npmjs.com/package/@noem/virtual-keyboard)
+[![Security: Trusted Publisher](https://img.shields.io/badge/security-trusted--publisher-green?logo=github)](https://www.npmjs.com/package/@noem/virtual-keyboard)
+[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/noem-inc/noem/badge)](https://securityscorecards.dev/viewer/?uri=github.com/noem-inc/noem)
+[![License: MIT OR Apache-2.0](https://img.shields.io/badge/License-MIT%20OR%20Apache--2.0-blue.svg)](https://github.com/noem-inc/noem#MIT-2-ov-file)
+
 Configurable virtual keyboard web component (`<noem-virtual-keyboard>`) for
 touch kiosk and desktop machines, built with [Lit](https://lit.dev). ESM-only.
 
@@ -13,6 +19,12 @@ touch kiosk and desktop machines, built with [Lit](https://lit.dev). ESM-only.
 A machine-readable API description ships as `custom-elements.json`
 (custom-elements manifest), consumed by IDE tooling like
 [lit-plugin](https://marketplace.visualstudio.com/items?itemName=runem.lit-plugin).
+
+## Install
+
+```bash
+pnpm add @noem/virtual-keyboard
+```
 
 ## Usage
 
@@ -106,9 +118,9 @@ Set via the `template` attribute/property:
 
 Notes:
 
-- `pin`'s `C` key is `action: 'custom'` (`value: 'clear'`) — the component
-  never mutates the target for custom keys; clear the field yourself in a
-  `noemKeyPress` listener.
+- `pin`'s `C` key is `action: 'clear'` — with a `target` set the component
+  empties the field (and fires a native `input` event) on tap. Use the
+  exported `clearKey()` helper to add one to your own layouts.
 - `currency` defaults to `$`. Other currencies:
   `kb.layout = createCurrencyLayout('€')`.
 - Layout objects (`emailLayout`, `telephoneLayout`, ...), the
@@ -158,7 +170,7 @@ document.querySelector('noem-virtual-keyboard').layout = pinPad;
 ```
 
 Key options: `value`, `label`, `action` (`char` | `space` | `backspace` |
-`enter` | `shift` | `layer` | `custom`), `layer` (target layer for
+`clear` | `enter` | `shift` | `layer` | `custom`), `layer` (target layer for
 `action: 'layer'`), `width` (flex units, default 1) and `ariaLabel`.
 
 A layer named `shift` is rendered in place of the default layer while shift

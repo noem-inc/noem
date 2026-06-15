@@ -102,6 +102,20 @@ export const deleteBackward = (el: KeyboardTarget): void => {
   dispatchInput(el, 'deleteContentBackward', null);
 };
 
+/**
+ * Empties the field and dispatches a native `input` event. No-op when the
+ * field is already empty.
+ */
+export const clearAll = (el: KeyboardTarget): void => {
+  if (el.value === '') {
+    return;
+  }
+
+  setNativeValue(el, '');
+  setCaret(el, 0);
+  dispatchInput(el, 'deleteContentBackward', null);
+};
+
 const NON_TYPEABLE_INPUT_TYPES = new Set([
   'hidden',
   'submit',

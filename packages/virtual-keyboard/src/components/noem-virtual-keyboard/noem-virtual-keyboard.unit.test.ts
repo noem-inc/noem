@@ -262,6 +262,22 @@ describe('noem-virtual-keyboard', () => {
       expect(input.value).toBe('a');
     });
 
+    it('empties the target for a clear key', async () => {
+      const input = createTarget();
+      input.value = '1234';
+      const onInput = vi.fn();
+      input.addEventListener('input', onInput);
+      const el = await renderKeyboard({
+        target: '#kb-target',
+        template: 'pin',
+      });
+
+      tap(findKey(el, 'Clear'));
+
+      expect(input.value).toBe('');
+      expect(onInput).toHaveBeenCalledTimes(1);
+    });
+
     it('dispatches change on the target for enter', async () => {
       const input = createTarget();
       const onChange = vi.fn();

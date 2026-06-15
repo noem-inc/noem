@@ -136,12 +136,12 @@ describe('resolveLayout', () => {
     expect(Object.keys(resolved.layers)).toEqual(['default', 'shift']);
   });
 
-  it('pin template exposes a custom clear key', () => {
+  it('pin template exposes a clear key', () => {
     const resolved = resolveLayout(keyboardTemplates.pin);
     const keys = resolved.layers.default.flat();
 
     expect(keys).toContainEqual(
-      expect.objectContaining({ action: 'custom', value: 'clear' }),
+      expect.objectContaining({ action: 'clear', ariaLabel: 'Clear' }),
     );
   });
 

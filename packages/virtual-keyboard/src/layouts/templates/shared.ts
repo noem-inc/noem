@@ -54,6 +54,13 @@ export const enterKey = (width = 1.5): KeyboardKey => ({
   ariaLabel: 'Enter',
 });
 
+export const clearKey = (width = 1): KeyboardKey => ({
+  label: 'C',
+  action: 'clear',
+  width,
+  ariaLabel: 'Clear',
+});
+
 export const spaceKey = (width = 5): KeyboardKey => ({
   value: ' ',
   label: '',
