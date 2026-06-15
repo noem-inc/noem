@@ -17,10 +17,10 @@
   "devDependencies": {
     "@biomejs/biome": "catalog:",
     "@changesets/cli": "^2.29.7",
-    "@types/node": "^25.9.1",
+    "@types/node": "^25.9.2",
     "cspell": "^10.0.1",
     "smol-toml": "^1.6.1",
-    "turbo": "^2.9.16",
+    "turbo": "^2.9.17",
     "vitest": "catalog:"
   },
   "packageManager": "pnpm@11.3.0",
