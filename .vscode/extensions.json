@@ -3,6 +3,7 @@
     "biomejs.biome",
     "editorconfig.editorconfig",
     "esbenp.prettier-vscode",
+    "runem.lit-plugin",
     "rust-lang.rust-analyzer",
     "tamasfe.even-better-toml"
   ]
