@@ -1,6 +1,6 @@
 {
   "name": "@noem/virtual-keyboard",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Configurable virtual keyboard web component (<noem-virtual-keyboard>) for touch kiosks and desktops, built with Lit. Built-in layout templates, fully custom layouts, an events-first API that can drive an input/textarea directly, and theming via CSS custom properties and ::part().",
   "keywords": [
     "virtual-keyboard",
