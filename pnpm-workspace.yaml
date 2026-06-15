@@ -21,6 +21,9 @@ catalog:
 
 allowBuilds:
   esbuild: true
+  # Prebuilt napi binary ships via optionalDependencies (@xn-sakina/rml-*);
+  # the postinstall is only a fallback build — not needed.
+  rs-module-lexer: false
 
 # Supply-chain hardening: Do not install deps younger then 5 days (7200 minutes).
 # IMPORTANT: WHEN UPDATING UPDATE dependabot.yml AS WELL

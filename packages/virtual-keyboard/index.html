@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html dir="ltr" lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=5.0" />
+    <title>Noem Virtual Keyboard</title>
+
+    <script type="module" src="/src/noem-virtual-keyboard.ts"></script>
+
+    <style>
+      body {
+        font-family: system-ui, sans-serif;
+        max-width: 40rem;
+        margin: 2rem auto;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+      }
+
+      input,
+      textarea {
+        font-size: 1.125rem;
+        padding: 0.5rem;
+      }
+
+      .themed {
+        --noem-vk-bg: #1c1e21;
+        --noem-vk-key-bg: #3a3d42;
+        --noem-vk-key-color: #f5f6f7;
+        --noem-vk-action-key-bg: #2a2c30;
+        --noem-vk-action-key-color: #f5f6f7;
+        --noem-vk-key-bg-active: #55585e;
+      }
+
+      pre {
+        background: #f1f2f4;
+        padding: 0.5rem;
+        min-height: 4rem;
+        overflow: auto;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Noem Virtual Keyboard</h1>
+
+    <h2>QWERTY targeting a form (enter advances, then submits)</h2>
+    <form id="demo-form">
+      <input id="text-input" placeholder="First field — tap keys below" />
+      <input placeholder="Second field — enter on field one jumps here" />
+    </form>
+    <noem-virtual-keyboard target="#text-input"></noem-virtual-keyboard>
+
+    <h2>Telephone pad (dark theme) targeting the textarea</h2>
+    <textarea id="phone-input" rows="2" placeholder="Phone number"></textarea>
+    <noem-virtual-keyboard
+      class="themed"
+      template="telephone"
+      target="#phone-input"
+    ></noem-virtual-keyboard>
+
+    <h2>Custom layout, events only</h2>
+    <noem-virtual-keyboard id="custom-keyboard"></noem-virtual-keyboard>
+
+    <h2>Template gallery</h2>
+    <select id="template-select" aria-label="Keyboard template"></select>
+    <input id="gallery-input" placeholder="Try the selected template" />
+    <noem-virtual-keyboard
+      id="gallery-keyboard"
+      target="#gallery-input"
+    ></noem-virtual-keyboard>
+
+    <h2>Kiosk mode — one global docked keyboard (auto-attach)</h2>
+    <p>Focus a field below: the single keyboard at the bottom slides up and
+      follows focus. The phone field requests the telephone template.</p>
+    <input class="kiosk" placeholder="Name (docked keyboard)" />
+    <input
+      class="kiosk"
+      data-keyboard-template="telephone"
+      placeholder="Phone (telephone template)"
+    />
+    <!-- Spacer pushes the next field to the bottom to demo keep-visible. -->
+    <div style="height: 70vh"></div>
+    <input class="kiosk" placeholder="Low field — scrolls clear of the dock" />
+
+    <noem-virtual-keyboard auto-attach=".kiosk"></noem-virtual-keyboard>
+
+    <h2>Event log</h2>
+    <pre id="event-log"></pre>
+
+    <script type="module">
+      import { keyboardTemplates } from '/src/layouts/index.ts';
+
+      const select = document.getElementById('template-select');
+      const galleryKeyboard = document.getElementById('gallery-keyboard');
+      for (const name of Object.keys(keyboardTemplates)) {
+        const option = document.createElement('option');
+        option.value = name;
+        option.textContent = name;
+        select.appendChild(option);
+      }
+      select.addEventListener('change', () => {
+        galleryKeyboard.template = select.value;
+      });
+
+      const customKeyboard = document.getElementById('custom-keyboard');
+      customKeyboard.layout = {
+        layers: {
+          default: [
+            ['7', '8', '9'],
+            ['4', '5', '6'],
+            ['1', '2', '3'],
+            [
+              { label: 'C', value: 'clear', action: 'custom' },
+              '0',
+              { label: '⌫', action: 'backspace', ariaLabel: 'Backspace' },
+              { label: 'OK', value: 'ok', action: 'custom', width: 2 },
+            ],
+          ],
+        },
+      };
+
+      const log = document.getElementById('event-log');
+      document.getElementById('demo-form').addEventListener('submit', (event) => {
+        event.preventDefault();
+        log.textContent = `form submit\n${log.textContent}`;
+      });
+      for (const name of ['noemKeyPress', 'noemEnter', 'noemLayerChange']) {
+        document.addEventListener(name, (event) => {
+          log.textContent = `${name}: ${JSON.stringify(event.detail)}\n${log.textContent}`;
+        });
+      }
+    </script>
+  </body>
+</html>

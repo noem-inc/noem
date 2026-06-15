@@ -1,0 +1,95 @@
+{
+  "name": "@noem/virtual-keyboard",
+  "version": "0.0.1",
+  "description": "Noem Virtual Kiosk Keyboard",
+  "keywords": [
+    "virtual-keyboard",
+    "keyboard",
+    "kiosk",
+    "touch",
+    "web-components",
+    "lit",
+    "esm",
+    "typescript",
+    "browser"
+  ],
+  "homepage": "https://github.com/noem-inc/noem/tree/main/packages/virtual-keyboard#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/noem-inc/noem.git",
+    "directory": "packages/virtual-keyboard"
+  },
+  "bugs": {
+    "url": "https://github.com/noem-inc/noem/issues"
+  },
+  "author": {
+    "name": "Noem Inc.",
+    "url": "https://www.noem.io/"
+  },
+  "type": "module",
+  "sideEffects": [
+    "./dist/noem-virtual-keyboard.js",
+    "./src/noem-virtual-keyboard.ts",
+    "./src/components/noem-virtual-keyboard/noem-virtual-keyboard.ts"
+  ],
+  "files": [
+    "dist",
+    "src",
+    "!src/**/*.test.ts",
+    "custom-elements.json",
+    "LICENSE-APACHE",
+    "LICENSE-MIT"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./noem-virtual-keyboard": {
+      "types": "./dist/noem-virtual-keyboard.d.ts",
+      "default": "./dist/noem-virtual-keyboard.js"
+    }
+  },
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "customElements": "custom-elements.json",
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "scripts": {
+    "build": "tsup && cem analyze --litelement --globs \"src/**/*.ts\" --exclude \"src/**/*.test.ts\"",
+    "dev": "vite --open",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "biome check . && tsc --noEmit -p tsconfig.json && eslint . && prettier --check \"src/**/*.ts\" && lit-analyzer \"src/components/**/*.ts\" --strict",
+    "lint:fix": "biome check --write . && eslint --fix . && prettier --write \"src/**/*.ts\"",
+    "clean": "rm -rf dist .turbo"
+  },
+  "dependencies": {
+    "lit": "^3.3.0"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "catalog:",
+    "@custom-elements-manifest/analyzer": "^0.10.4",
+    "@types/node": "^25.9.2",
+    "@typescript-eslint/parser": "^8.0.0",
+    "@vitest/coverage-v8": "catalog:",
+    "eslint": "^9.0.0",
+    "eslint-plugin-lit": "^2.1.0",
+    "eslint-plugin-lit-a11y": "^5.1.0",
+    "eslint-plugin-wc": "^3.0.0",
+    "happy-dom": "^20.0.0",
+    "lit-analyzer": "^2.0.0",
+    "prettier": "^3.6.0",
+    "ts-lit-plugin": "^2.0.0",
+    "tsup": "catalog:",
+    "typescript": "catalog:",
+    "vite": "^7.0.0",
+    "vitest": "catalog:"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "MIT OR Apache-2.0"
+}
