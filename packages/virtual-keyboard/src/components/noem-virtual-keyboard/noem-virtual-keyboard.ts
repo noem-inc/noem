@@ -12,6 +12,7 @@ import {
   type ResolvedLayout,
   resolveLayout,
   type ShiftState,
+  templateForField,
 } from '../../layouts/index.js';
 import {
   ENTER_NEXT_LABEL,
@@ -75,9 +76,14 @@ export interface NoemLayerChangeDetail {
 @customElement('noem-virtual-keyboard')
 export class NoemVirtualKeyboard extends LitElement {
   /**
-   * Template name to use, ignored if the layout property is passed.
+   * Template name to use. Ignored when the `layout` property is passed.
+   *
+   * When unset the keyboard derives the template from the `target` field's
+   * `inputmode` / `type` (e.g. `type="tel"` → telephone keypad), falling back
+   * to `normal-keyboard`. Setting this explicitly overrides that detection; a
+   * per-field `data-keyboard-template` attribute overrides it in turn.
    */
-  @property() template: KeyboardTemplateName = 'normal-keyboard';
+  @property() template?: KeyboardTemplateName;
 
   /**
    * Full KeyboardLayout to use, must define entire layout.
@@ -104,8 +110,9 @@ export class NoemVirtualKeyboard extends LitElement {
    * Global kiosk mode: a CSS selector for inputs/textareas this keyboard
    * should serve. When set, the keyboard docks (see the `:host([auto-attach])`
    * styles), follows focus to any matching field document-wide, and shows /
-   * hides itself as those fields gain and lose focus. A focused field may
-   * override the template via a `data-keyboard-template` attribute.
+   * hides itself as those fields gain and lose focus. Each focused field
+   * selects its template from its own `inputmode` / `type` (or an explicit
+   * `data-keyboard-template` attribute); see `template`.
    *
    * Leave unset for the embedded one-keyboard-per-input pattern, which keeps
    * its in-flow layout and stays always visible.
@@ -137,8 +144,6 @@ export class NoemVirtualKeyboard extends LitElement {
   // private lastShiftTapAt = 0;
   private repeatTimeout?: ReturnType<typeof setTimeout>;
   private repeatInterval?: ReturnType<typeof setInterval>;
-  /** Template to fall back to for fields without a per-field override. */
-  private baseTemplate?: KeyboardTemplateName;
   /** Restores page scroll space reserved for the open dock, or undefined. */
   private releaseSpace?: () => void;
 
@@ -216,15 +221,9 @@ export class NoemVirtualKeyboard extends LitElement {
     this.open = false;
   };
 
-  /** Adopt a field as the target, applying any per-field config, and show. */
+  /** Adopt a field as the target and show. The template follows from the
+   * field itself (see `effectiveTemplate`), so no per-field bookkeeping. */
   private attachTo(el: KeyboardTarget): void {
-    // Remember the template the keyboard was configured with so fields
-    // without a `data-keyboard-template` revert to it instead of keeping the
-    // previous field's override.
-    this.baseTemplate ??= this.template;
-    this.template =
-      (el.dataset.keyboardTemplate as KeyboardTemplateName) ??
-      this.baseTemplate;
     this.target = el;
     this.open = true;
   }
@@ -233,6 +232,7 @@ export class NoemVirtualKeyboard extends LitElement {
     if (
       changed.has('layout') ||
       changed.has('template') ||
+      changed.has('target') ||
       !this.resolvedLayout
     ) {
       this.computeLayout();
@@ -301,11 +301,32 @@ export class NoemVirtualKeyboard extends LitElement {
     root.scrollBy?.({ top: overlap, behavior: 'smooth' });
   }
 
+  /**
+   * The template actually rendered, in precedence order:
+   * 1. a field's `data-keyboard-template` (per-field author override),
+   * 2. the explicit `template` property,
+   * 3. the target field's `inputmode` / `type` (e.g. `tel` → telephone),
+   * 4. `normal-keyboard`.
+   */
+  private get effectiveTemplate(): KeyboardTemplateName {
+    const field = resolveTarget(this.target);
+    const override = field?.dataset.keyboardTemplate as
+      | KeyboardTemplateName
+      | undefined;
+    return (
+      override ??
+      this.template ??
+      (field ? templateForField(field) : undefined) ??
+      'normal-keyboard'
+    );
+  }
+
   private computeLayout(): void {
-    const layout = this.layout ?? keyboardTemplates[this.template];
+    const template = this.effectiveTemplate;
+    const layout = this.layout ?? keyboardTemplates[template];
     if (!layout) {
       throw new Error(
-        `Unknown virtual keyboard template "${this.template}" (available: ` +
+        `Unknown virtual keyboard template "${template}" (available: ` +
           `${Object.keys(keyboardTemplates).join(', ')})`,
       );
     }

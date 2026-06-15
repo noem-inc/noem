@@ -83,7 +83,9 @@ slides in/out as those fields gain and lose focus:
 <noem-virtual-keyboard auto-attach=".kiosk-field"></noem-virtual-keyboard>
 ```
 
-- A focused field may override the layout with `data-keyboard-template`.
+- Each focused field selects its template automatically from its `inputmode` /
+  `type` (see [Automatic template from `type` / `inputmode`](#automatic-template-from-type--inputmode)),
+  or you can pin one explicitly with `data-keyboard-template`.
 - The docked styles (`position: fixed`, slide animation, shadow) apply **only**
   in `auto-attach` mode, so the embedded one-keyboard-per-input pattern above is
   unaffected. Tune them with `--noem-vk-z-index`, `--noem-vk-dock-transition`,
@@ -115,6 +117,39 @@ Set via the `template` attribute/property:
 | `currency` | digits, `.` `00` `$`, backspace, enter | POS amounts |
 | `date` | digits, `/` `-`, backspace, enter | Dates |
 | `hex` | 0-9 A-F, `:` `-`, backspace, enter | MAC/serial entry |
+
+### Automatic template from `type` / `inputmode`
+
+When you leave `template` unset, the keyboard picks one from the `target`
+field's `inputmode` / `type`, so `<input type="tel">` gets the telephone keypad
+with no extra wiring:
+
+```html
+<input id="phone" type="tel" />
+<noem-virtual-keyboard target="#phone"></noem-virtual-keyboard>
+```
+
+Precedence (first match wins):
+
+1. a field's `data-keyboard-template` attribute,
+2. an explicit `template` property/attribute on the keyboard,
+3. the field's `inputmode`, then its `type`,
+4. `normal-keyboard`.
+
+`inputmode` is consulted before `type`, so `<input type="text" inputmode="tel">`
+also yields the telephone keypad. Mappings:
+
+| `inputmode` / `type`                         | Template          |
+| -------------------------------------------- | ----------------- |
+| `inputmode="numeric"` / `"decimal"`          | `numeric`         |
+| `inputmode="tel"`, `type="tel"`              | `telephone`       |
+| `inputmode="email"`, `type="email"`          | `email`           |
+| `inputmode="url"`, `type="url"`              | `url`             |
+| `type="number"`                              | `numeric`         |
+| `type="date"` / `datetime-local` / `month` / `week` | `date`     |
+| everything else text-like                    | `normal-keyboard` |
+
+The `templateForField(el)` helper that drives this is exported if you need it.
 
 Notes:
 
