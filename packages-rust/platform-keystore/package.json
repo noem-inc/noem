@@ -85,7 +85,7 @@
   "devDependencies": {
     "@biomejs/biome": "catalog:",
     "@napi-rs/cli": "catalog:",
-    "@types/node": "^25.9.1",
+    "@types/node": "^25.9.3",
     "typescript": "catalog:",
     "vitest": "catalog:"
   },
